@@ -13,3 +13,5 @@ gem "minitest", "~> 5.16"
 gem "rubocop", "~> 1.21"
 gem "rubocop-minitest"
 gem "rubocop-rake"
+
+gem "claude_swarm"

@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
 
   # Runtime dependencies
   spec.add_dependency "capybara"
-  spec.add_dependency "fast-mcp"
+  spec.add_dependency "fast-mcp-annotations", "~> 1.5"
   spec.add_dependency "json"
   spec.add_dependency "ostruct"
   spec.add_dependency "puma"

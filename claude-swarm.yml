@@ -1,0 +1,37 @@
+version: 1
+swarm:
+  name: "Swarm Name"
+  main: lead_developer
+  instances:
+    lead_developer:
+      directory: .
+      model: sonnet
+      prompt: "You are the lead developer coordinating the team"
+      tools: [Read, Edit, Bash, Write]
+      connections: [frontend_dev, backend_dev]
+
+    # Example instances (uncomment and modify as needed):
+
+    frontend_dev:
+      directory: .
+      model: sonnet
+      prompt: "You specialize in frontend development with React, TypeScript, and modern web technologies"
+      tools: [Read, Edit, Write, "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
+
+    backend_dev:
+      directory: .
+      model: sonnet
+      prompt: "You specialize in backend development, APIs, databases, and server architecture"
+      tools: [Read, Edit, Write, Bash]
+
+    # devops_engineer:
+    #   directory: .
+    #   model: sonnet
+    #   prompt: "You specialize in infrastructure, CI/CD, containerization, and deployment"
+    #   tools: [Read, Edit, Write, "Bash(docker:*)", "Bash(kubectl:*)", "Bash(terraform:*)"]
+
+    # qa_engineer:
+    #   directory: ./tests
+    #   model: sonnet
+    #   prompt: "You specialize in testing, quality assurance, and test automation"
+    #   tools: [Read, Edit, Write, Bash]
