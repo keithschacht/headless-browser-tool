@@ -140,7 +140,7 @@ module HeadlessBrowserTool
             {
               name: "mcp__headless_browser__#{tool_class.tool_name}",
               description: tool_class.description,
-              inputSchema: tool_class.input_schema_to_json
+              inputSchema: tool_class.input_schema_to_json || { type: 'object', properties: {}, required: [] }
             }
           end
           
