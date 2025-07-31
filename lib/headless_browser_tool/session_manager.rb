@@ -53,7 +53,23 @@ module HeadlessBrowserTool
         # Check if we're at capacity
         cleanup_least_recently_used if !@sessions[session_id] && @sessions.size >= MAX_SESSIONS
 
-        # Get or create the Capybara session
+        # Get existing session or create new one
+        session = @sessions[session_id]
+        
+        # Check if session is still valid
+        if session
+          begin
+            # Try to access the browser to see if it's still alive
+            session.current_url
+          rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::SessionNotCreatedError
+            # Browser window was closed, remove the dead session
+            HeadlessBrowserTool::Logger.log.info "Session #{session_id} browser window closed, creating new session"
+            @sessions.delete(session_id)
+            session = nil
+          end
+        end
+
+        # Create new session if needed
         @sessions[session_id] ||= create_session(session_id)
       end
     end
