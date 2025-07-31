@@ -101,12 +101,32 @@ module HeadlessBrowserTool
     def register_driver
       Capybara.register_driver :selenium_chrome do |app|
         options = Selenium::WebDriver::Chrome::Options.new
-        
+
         # Basic arguments
         options.add_argument("--headless") if @headless
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu") if @headless
+
+        # Stealth mode arguments to avoid detection
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.exclude_switches = ["enable-automation"]
+        options.add_preference("credentials_enable_service", false)
+        options.add_preference("profile.password_manager_enabled", false)
+
+        # Additional anti-detection measures
+        options.add_argument("--disable-web-security")
+        options.add_argument("--disable-features=IsolateOrigins,site-per-process")
+        options.add_argument("--allow-running-insecure-content")
+        options.add_argument("--disable-setuid-sandbox")
+        options.add_argument("--disable-infobars")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--start-maximized")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-default-apps")
+
+        # Set a more common user agent if needed
+        # options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
         Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
       end
@@ -122,6 +142,9 @@ module HeadlessBrowserTool
       # With threadsafe mode enabled, each session is isolated
       session = Capybara::Session.new(:selenium_chrome)
 
+      # Inject anti-detection JavaScript on every page load
+      inject_stealth_js(session)
+
       # Try to restore previous state
       restore_session_state(session_id, session)
 
@@ -129,6 +152,39 @@ module HeadlessBrowserTool
     rescue StandardError => e
       HeadlessBrowserTool::Logger.log.info "Error creating session #{session_id}: #{e.message}"
       raise
+    end
+
+    def inject_stealth_js(session)
+      # This JavaScript will be executed on every page to hide automation indicators
+      stealth_js = <<~JS
+        // Hide webdriver property
+        Object.defineProperty(navigator, 'webdriver', {
+          get: () => undefined
+        });
+
+        // Remove automation indicators
+        if (window.chrome) {
+          window.chrome.runtime = undefined;
+          Object.defineProperty(navigator, 'plugins', {
+            get: () => [1, 2, 3, 4, 5]
+          });
+        }
+
+        // Override permissions
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) => (
+          parameters.name === 'notifications' ?
+            Promise.resolve({ state: Notification.permission }) :
+            originalQuery(parameters)
+        );
+      JS
+
+      # Execute on initial page
+      begin
+        session.execute_script(stealth_js) if session.current_url != "about:blank"
+      rescue
+        # Ignore errors on blank pages
+      end
     end
 
     def save_session_state(session_id, session)

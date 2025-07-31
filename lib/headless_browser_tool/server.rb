@@ -120,11 +120,13 @@ module HeadlessBrowserTool
         
         case request_data["method"]
         when "initialize"
+          # Accept whatever protocol version the client requests
+          client_version = request_data.dig("params", "protocolVersion") || "2025-06-18"
           {
             jsonrpc: "2.0",
             id: request_data["id"],
             result: {
-              protocolVersion: "2025-06-18",
+              protocolVersion: client_version,
               capabilities: {
                 tools: { listChanged: true }
               },
@@ -138,7 +140,7 @@ module HeadlessBrowserTool
         when "tools/list"
           tools = HeadlessBrowserTool::Tools::ALL_TOOLS.map do |tool_class|
             {
-              name: "mcp__headless_browser__#{tool_class.tool_name}",
+              name: tool_class.tool_name,
               description: tool_class.description,
               inputSchema: tool_class.input_schema_to_json || { type: 'object', properties: {}, required: [] }
             }
@@ -157,11 +159,8 @@ module HeadlessBrowserTool
           tool_name = request_data.dig("params", "name")
           tool_args = request_data.dig("params", "arguments") || {}
           
-          # Remove prefix
-          actual_tool_name = tool_name.sub(/^mcp__headless_browser__/, "")
-          
           tool_class = HeadlessBrowserTool::Tools::ALL_TOOLS.find do |tc|
-            tc.tool_name == actual_tool_name
+            tc.tool_name == tool_name
           end
           
           if tool_class
