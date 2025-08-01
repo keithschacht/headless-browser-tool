@@ -29,19 +29,13 @@ module HeadlessBrowserTool
         version: HeadlessBrowserTool::VERSION
       )
 
-      # Create single browser instance
-      # In stdio mode, always single session and headless by default
-      browser = Browser.new(headless: options.fetch(:headless, true), be_human: options.fetch(:be_human, false))
-
-      # Store browser instance for tools to access
-      Server.browser_instance = browser
+      # Store options for lazy browser initialization
+      Server.browser_options = { headless: options.fetch(:headless, true), be_human: options.fetch(:be_human, false) }
       Server.single_session_mode = true
 
-      # Restore session if session ID provided
-      if session_id
-        HeadlessBrowserTool::Logger.log.info "Session ID provided: #{session_id}"
-        SessionPersistence.restore_session(session_id, browser.session)
-      end
+      # Store session ID for later use
+      Server.session_id = session_id
+      HeadlessBrowserTool::Logger.log.info "Session ID provided: #{session_id}" if session_id
 
       # Register all browser tools
       HeadlessBrowserTool::Tools::ALL_TOOLS.each do |tool_class|
@@ -52,22 +46,24 @@ module HeadlessBrowserTool
       HeadlessBrowserTool::Logger.log.info "Starting HeadlessBrowserTool MCP server in stdio mode..."
       HeadlessBrowserTool::Logger.log.info "Headless: #{options.fetch(:headless, true)}"
 
-      # Store references for shutdown
-      @browser = browser
+      # Store session ID for shutdown
       @session_id = session_id
 
       # Register shutdown hook
       at_exit do
-        SessionPersistence.save_session(@session_id, @browser.session) if @session_id
+        # Only save if browser was actually created
+        SessionPersistence.save_session(@session_id, Server.browser_instance.session) if @session_id && Server.browser_instance
       end
 
       # Start the server in stdio mode
       server.start
     rescue Interrupt
       HeadlessBrowserTool::Logger.log.info "Shutting down..."
-      SessionPersistence.save_session(session_id, browser.session) if session_id
+      # Only save if browser was actually created
+      SessionPersistence.save_session(session_id, Server.browser_instance.session) if session_id && Server.browser_instance
     ensure
-      SessionPersistence.save_session(session_id, browser.session) if session_id
+      # Only save if browser was actually created
+      SessionPersistence.save_session(session_id, Server.browser_instance.session) if session_id && Server.browser_instance
     end
   end
 end

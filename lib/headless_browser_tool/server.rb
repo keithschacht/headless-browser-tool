@@ -18,7 +18,7 @@ require_relative "directory_setup"
 module HeadlessBrowserTool
   class Server < Sinatra::Base
     class << self
-      attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human
+      attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human, :browser_options
 
       def start_server(options = {})
         # Initialize logger for HTTP mode
@@ -28,6 +28,9 @@ module HeadlessBrowserTool
         @single_session_mode = options[:single_session] || ENV["HBT_SINGLE_SESSION"] == "true"
         @show_headers = options[:show_headers] || ENV["HBT_SHOW_HEADERS"] == "true"
         @be_human = options[:be_human]
+
+        # Store options for lazy initialization
+        @browser_options = { headless: options[:headless], be_human: options[:be_human] }
 
         # Validate session_id option
         if options[:session_id] && !@single_session_mode
@@ -41,10 +44,7 @@ module HeadlessBrowserTool
             puts "Session ID: #{options[:session_id]}"
             @session_id = options[:session_id]
           end
-          @browser_instance = Browser.new(headless: options[:headless], be_human: options[:be_human])
-
-          # Restore session if session_id provided
-          restore_single_session if @session_id
+          # Don't create browser instance here - wait for first use
         else
           puts "Running in multi-session mode"
           @session_manager = SessionManager.new(headless: options[:headless], be_human: options[:be_human])
@@ -72,6 +72,18 @@ module HeadlessBrowserTool
 
         launcher = Puma::Launcher.new(puma_config)
         launcher.run
+      end
+
+      def get_or_create_browser
+        return @browser_instance if @browser_instance
+
+        HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
+        @browser_instance = Browser.new(@browser_options)
+
+        # Restore session if session_id provided
+        restore_single_session if @session_id
+
+        @browser_instance
       end
 
       private

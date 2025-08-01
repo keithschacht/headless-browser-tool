@@ -10,8 +10,8 @@ module HeadlessBrowserTool
 
       def browser
         if HeadlessBrowserTool::Server.single_session_mode
-          # Use the single shared browser instance
-          HeadlessBrowserTool::Server.browser_instance
+          # Use the single shared browser instance (lazy initialization)
+          HeadlessBrowserTool::Server.get_or_create_browser
         else
           # Get session-specific browser
           session_id = Thread.current[:hbt_session_id]
