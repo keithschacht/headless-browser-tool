@@ -31,7 +31,7 @@ module HeadlessBrowserTool
 
       # Create single browser instance
       # In stdio mode, always single session and headless by default
-      browser = Browser.new(headless: options.fetch(:headless, true))
+      browser = Browser.new(headless: options.fetch(:headless, true), be_human: options.fetch(:be_human, false))
 
       # Store browser instance for tools to access
       Server.browser_instance = browser

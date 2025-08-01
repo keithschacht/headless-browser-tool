@@ -71,6 +71,7 @@ module HeadlessBrowserTool
       path = env["PATH_INFO"]
       return true if path&.start_with?("/.well-known/")
       return true if path == "/register"
+
       false
     end
 

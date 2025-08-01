@@ -24,7 +24,7 @@ module HeadlessBrowserTool
       end
 
       def log
-        @instance ||= initialize_logger
+        @log ||= initialize_logger
       end
     end
   end

@@ -3,18 +3,22 @@
 require "capybara"
 require "capybara/dsl"
 require "selenium-webdriver"
+require_relative "stealth_mode"
 
 module HeadlessBrowserTool
   class Browser
     include Capybara::DSL
+    include StealthMode
 
     attr_reader :session
     attr_accessor :previous_state
 
-    def initialize(headless: true)
+    def initialize(headless: true, be_human: false)
+      @be_human = be_human
       configure_capybara(headless)
       @session = Capybara.current_session
       @previous_state = {}
+      inject_stealth_js(@session) if @be_human
     end
 
     def active?
@@ -363,6 +367,23 @@ module HeadlessBrowserTool
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu") if headless
 
+        # Apply human-like browser options if enabled
+        if @be_human
+          options.add_argument("--disable-blink-features=AutomationControlled")
+          options.exclude_switches = ["enable-automation"]
+          options.add_preference("credentials_enable_service", false)
+          options.add_preference("profile.password_manager_enabled", false)
+          options.add_argument("--disable-web-security")
+          options.add_argument("--disable-features=IsolateOrigins,site-per-process")
+          options.add_argument("--allow-running-insecure-content")
+          options.add_argument("--disable-setuid-sandbox")
+          options.add_argument("--disable-infobars")
+          options.add_argument("--window-size=1920,1080")
+          options.add_argument("--start-maximized")
+          options.add_argument("--disable-extensions")
+          options.add_argument("--disable-default-apps")
+        end
+
         Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
       end
 
@@ -370,5 +391,6 @@ module HeadlessBrowserTool
       Capybara.javascript_driver = :selenium_chrome
       Capybara.default_max_wait_time = 10
     end
+
   end
 end

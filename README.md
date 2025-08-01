@@ -2,6 +2,34 @@
 
 A headless browser control tool that provides an MCP (Model Context Protocol) server with tools to control a headless browser using Capybara and Selenium. Features multi-session support, session persistence, and both HTTP and stdio communication modes.
 
+## Quick Start to use this as an MCP server (E.g. with Claude Code)
+
+```bash
+# First, if you don't have a new version of Ruby (Mac's don't have this pre-installed) then:
+brew install ruby
+# Don't forget to add Ruby to your shell's path and restart your shell:
+# For bash:
+# echo 'export PATH="/opt/homebrew/opt/ruby/bin:$PATH"' >> ~/.bash_profile && source ~/.bash_profile
+
+```
+
+```bash
+gem install headless_browser_tool
+claude mcp add headless-browser hbt stdio --
+claude
+```
+
+If you want to watch the browser work, add the `--no-headless` flag like `hbt stdio -- --no-headless`. If any websites are blocking you because of automation, also add the `--be-human` flag. If you want to persist the browser between Claude sessions, run it in HTTP mode instead:
+
+```bash
+gem install headless_browser_tool
+hbt start  # Starts an http server, supports the same flags but don't use "--" seperator.
+           # You can run it in the background by registering with Launch Agent
+           # or simply: nohup hbt start > ~/.hbt/server.log 2>&1 &
+claude mcp add --transport http headless-browser http://localhost:4567/mcp
+claude
+```
+
 ## Features
 
 - **Headless Chrome browser automation** - Full browser control via Selenium WebDriver
@@ -435,7 +463,7 @@ Here are examples using curl with the HTTP server:
 curl -X POST http://localhost:4567/ \
   -H "Content-Type: application/json" \
   -H "X-Session-ID: alice" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", 
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
        "params": {"name": "visit", "arguments": {"url": "https://example.com"}}}'
 
 # Take an annotated screenshot
@@ -443,8 +471,8 @@ curl -X POST http://localhost:4567/ \
   -H "Content-Type: application/json" \
   -H "X-Session-ID: alice" \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call",
-       "params": {"name": "screenshot", 
-                  "arguments": {"filename": "example", 
+       "params": {"name": "screenshot",
+                  "arguments": {"filename": "example",
                               "highlight_selectors": [".error", ".warning"],
                               "annotate": true,
                               "full_page": true}}}'
@@ -520,3 +548,18 @@ rake
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/parruda/headless_browser_tool.
+Tip for developers who want to test this locally. It's helpful to create an hbt-dev script, e.g.:
+
+I saved this as `hbt-dev` in my `~/bin/hbt-dev`
+
+```bash
+#!/bin/bash
+exec ruby -I/PATH-TO-REPO/headless-browser-tool/lib /PATH-TO-REPO/headless-browser-tool/exe/hbt "$@"
+```
+
+Then you can change Claude's registered MCP to use this:
+
+```bash
+claude mcp remove headless-browser
+claude mcp add headless-browser ~/bin/hbt-dev stdio --
+```

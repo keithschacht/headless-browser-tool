@@ -18,7 +18,7 @@ require_relative "directory_setup"
 module HeadlessBrowserTool
   class Server < Sinatra::Base
     class << self
-      attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id
+      attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human
 
       def start_server(options = {})
         # Initialize logger for HTTP mode
@@ -27,6 +27,7 @@ module HeadlessBrowserTool
         # Check if we should use single session mode
         @single_session_mode = options[:single_session] || ENV["HBT_SINGLE_SESSION"] == "true"
         @show_headers = options[:show_headers] || ENV["HBT_SHOW_HEADERS"] == "true"
+        @be_human = options[:be_human]
 
         # Validate session_id option
         if options[:session_id] && !@single_session_mode
@@ -40,13 +41,13 @@ module HeadlessBrowserTool
             puts "Session ID: #{options[:session_id]}"
             @session_id = options[:session_id]
           end
-          @browser_instance = Browser.new(headless: options[:headless])
+          @browser_instance = Browser.new(headless: options[:headless], be_human: options[:be_human])
 
           # Restore session if session_id provided
           restore_single_session if @session_id
         else
           puts "Running in multi-session mode"
-          @session_manager = SessionManager.new(headless: options[:headless])
+          @session_manager = SessionManager.new(headless: options[:headless], be_human: options[:be_human])
         end
 
         # Setup directory structure
@@ -112,12 +113,12 @@ module HeadlessBrowserTool
     # MCP endpoint for Claude Code
     post "/mcp" do
       content_type :json
-      
+
       begin
         request.body.rewind
         body = request.body.read
         request_data = JSON.parse(body)
-        
+
         case request_data["method"]
         when "initialize"
           # Accept whatever protocol version the client requests
@@ -136,41 +137,44 @@ module HeadlessBrowserTool
               }
             }
           }.to_json
-          
+
         when "tools/list"
           tools = HeadlessBrowserTool::Tools::ALL_TOOLS.map do |tool_class|
             {
-              name: tool_class.tool_name,
+              name: "mcp__headless_browser__#{tool_class.tool_name}",
               description: tool_class.description,
-              inputSchema: tool_class.input_schema_to_json || { type: 'object', properties: {}, required: [] }
+              inputSchema: tool_class.input_schema_to_json || { type: "object", properties: {}, required: [] }
             }
           end
-          
+
           {
             jsonrpc: "2.0",
             id: request_data["id"],
             result: { tools: tools }
           }.to_json
-          
+
         when "notifications/initialized"
           { jsonrpc: "2.0", result: nil }.to_json
-          
+
         when "tools/call"
           tool_name = request_data.dig("params", "name")
           tool_args = request_data.dig("params", "arguments") || {}
-          
+
+          # Remove prefix
+          actual_tool_name = tool_name.sub(/^mcp__headless_browser__/, "")
+
           tool_class = HeadlessBrowserTool::Tools::ALL_TOOLS.find do |tc|
-            tc.tool_name == tool_name
+            tc.tool_name == actual_tool_name
           end
-          
+
           if tool_class
             session_id = env["hbt.session_id"]
             Thread.current[:hbt_session_id] = session_id
-            
+
             begin
               tool = tool_class.new
               result = tool.execute(**tool_args.transform_keys(&:to_sym))
-              
+
               {
                 jsonrpc: "2.0",
                 id: request_data["id"],
@@ -186,28 +190,28 @@ module HeadlessBrowserTool
               jsonrpc: "2.0",
               id: request_data["id"],
               error: {
-                code: -32601,
+                code: -32_601,
                 message: "Tool not found: #{tool_name}"
               }
             }.to_json
           end
-          
+
         else
           {
             jsonrpc: "2.0",
             id: request_data["id"],
             error: {
-              code: -32601,
+              code: -32_601,
               message: "Method not found: #{request_data["method"]}"
             }
           }.to_json
         end
-      rescue => e
+      rescue StandardError => e
         {
           jsonrpc: "2.0",
           id: request_data["id"],
           error: {
-            code: -32603,
+            code: -32_603,
             message: "Internal error: #{e.message}"
           }
         }.to_json
