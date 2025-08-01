@@ -384,8 +384,9 @@ module HeadlessBrowserTool
           options.add_argument("--disable-default-apps")
 
           # Set a more common user agent to avoid HeadlessChrome detection
+          # Include proper Chrome version for compatibility with version detection tests
           user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
-                       "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                       "(KHTML, like Gecko) Chrome/131.0.6778.85 Safari/537.36"
           options.add_argument("--user-agent=#{user_agent}")
         end
 

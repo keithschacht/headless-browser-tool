@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module HeadlessBrowserTool
-  module StealthMode
+  module StealthMode # rubocop:disable Metrics/ModuleLength
     def inject_stealth_js(session)
       # This JavaScript will be executed on every page to hide automation indicators
       stealth_js = <<~JS
@@ -10,8 +10,14 @@ module HeadlessBrowserTool
           get: () => undefined
         });
 
-        // Enhanced window.chrome spoofing
-        if (!window.chrome) {
+        // Enhanced window.chrome spoofing - preserve existing chrome object if present
+        if (window.chrome) {
+          // Remove automation indicators but preserve version info
+          if (window.chrome.runtime) {
+            delete window.chrome.runtime.id;
+          }
+        } else {
+          // Only create chrome object if it doesn't exist
           window.chrome = {
             runtime: {},
             app: {
@@ -156,4 +162,3 @@ module HeadlessBrowserTool
     end
   end
 end
-
