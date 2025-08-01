@@ -382,6 +382,11 @@ module HeadlessBrowserTool
           options.add_argument("--start-maximized")
           options.add_argument("--disable-extensions")
           options.add_argument("--disable-default-apps")
+
+          # Set a more common user agent to avoid HeadlessChrome detection
+          user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+                       "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          options.add_argument("--user-agent=#{user_agent}")
         end
 
         Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
@@ -391,6 +396,5 @@ module HeadlessBrowserTool
       Capybara.javascript_driver = :selenium_chrome
       Capybara.default_max_wait_time = 10
     end
-
   end
 end
