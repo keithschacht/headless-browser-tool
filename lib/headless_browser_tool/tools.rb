@@ -48,6 +48,7 @@ require_relative "tools/get_page_context_tool"
 require_relative "tools/auto_narrate_tool"
 require_relative "tools/get_narration_history_tool"
 require_relative "tools/get_session_info_tool"
+require_relative "tools/about_tool"
 
 module HeadlessBrowserTool
   module Tools
@@ -98,7 +99,8 @@ module HeadlessBrowserTool
       GetPageContextTool,
       AutoNarrateTool,
       GetNarrationHistoryTool,
-      GetSessionInfoTool
+      GetSessionInfoTool,
+      AboutTool
     ].freeze
   end
 end
