@@ -88,6 +88,7 @@ hbt start [OPTIONS]
 - `--session-id SESSION_ID` - Enable session persistence for single session mode (requires `--single-session`)
 - `--show-headers` - Show HTTP request headers for debugging session issues
 - `--be-human` - Be human-like in browser interactions.
+- `--be-mostly-human` - Be human-like in browser interactions except continue to execute in the main world context since this optimization may be brittle in some cases.
 
 **Examples:**
 ```bash

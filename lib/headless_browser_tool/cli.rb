@@ -11,6 +11,7 @@ module HeadlessBrowserTool
     option :show_headers, type: :boolean, default: false, desc: "Show HTTP request headers for debugging"
     option :session_id, type: :string, desc: "Session ID for persistence (only with --single-session)"
     option :be_human, type: :boolean, default: false, desc: "Enable human-like browser behavior to avoid bot detection"
+    option :be_mostly_human, type: :boolean, default: false, desc: "Enable human-like behavior except CDP (executes in main world)"
     def start
       require_relative "server"
       Server.start_server(options)
@@ -19,6 +20,7 @@ module HeadlessBrowserTool
     desc "stdio", "Start the MCP server in stdio mode"
     option :headless, type: :boolean, default: true, desc: "Run browser in headless mode"
     option :be_human, type: :boolean, default: false, desc: "Enable human-like browser behavior to avoid bot detection"
+    option :be_mostly_human, type: :boolean, default: false, desc: "Enable human-like behavior except CDP (executes in main world)"
     def stdio
       require_relative "stdio_server"
       StdioServer.start(options)

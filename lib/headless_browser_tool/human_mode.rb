@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 module HeadlessBrowserTool
-  module StealthMode # rubocop:disable Metrics/ModuleLength
-    def inject_stealth_js(session)
+  module HumanMode # rubocop:disable Metrics/ModuleLength
+    def inject_human_js(session)
       # This JavaScript will be executed on every page to hide automation indicators
-      stealth_js = <<~JS
+      human_js = <<~JS
         // Hide webdriver property
         Object.defineProperty(navigator, 'webdriver', {
           get: () => undefined
@@ -157,7 +157,7 @@ module HeadlessBrowserTool
 
       # Execute on initial page
       begin
-        session.execute_script(stealth_js) if session.current_url != "about:blank"
+        session.execute_script(human_js) if session.current_url != "about:blank"
       rescue StandardError
         # Ignore errors on blank pages
       end

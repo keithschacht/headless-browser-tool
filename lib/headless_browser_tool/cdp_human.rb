@@ -3,12 +3,12 @@
 require "securerandom"
 require "json"
 require_relative "logger"
-require_relative "cdp_stealth_scripts"
+require_relative "cdp_human_scripts"
 require_relative "cdp_context_manager"
 require_relative "cdp_executor"
 
 module HeadlessBrowserTool
-  module CDPStealth # rubocop:disable Metrics/ModuleLength
+  module CDPHuman # rubocop:disable Metrics/ModuleLength
     class CDPError < StandardError; end
 
     def setup_cdp(driver)
@@ -35,11 +35,11 @@ module HeadlessBrowserTool
       HeadlessBrowserTool::Logger.log.info "[CDP] Registering navigation handler..."
       register_navigation_handler
 
-      # Inject stealth scripts
-      HeadlessBrowserTool::Logger.log.info "[CDP] Injecting stealth scripts..."
-      inject_stealth_scripts
+      # Inject human scripts
+      HeadlessBrowserTool::Logger.log.info "[CDP] Injecting human scripts..."
+      inject_human_scripts
 
-      HeadlessBrowserTool::Logger.log.info "[CDP] Stealth mode initialized successfully"
+      HeadlessBrowserTool::Logger.log.info "[CDP] Human mode initialized successfully"
     rescue StandardError => e
       HeadlessBrowserTool::Logger.log.error "[CDP] Failed to setup CDP: #{e.message}"
       @devtools = nil
@@ -64,7 +64,7 @@ module HeadlessBrowserTool
       @devtools.send_cmd("Page.enable")
       @devtools.send_cmd("Runtime.enable")
       @devtools.send_cmd("Network.enable")
-      
+
       # Don't override user agent - Chrome's default is already correct!
     rescue StandardError => e
       HeadlessBrowserTool::Logger.log.warn "[CDP] Failed to enable domains: #{e.message}"
@@ -89,7 +89,7 @@ module HeadlessBrowserTool
         if frame && frame["id"] == @main_frame_id
           HeadlessBrowserTool::Logger.log.debug "[CDP] Main frame navigated, clearing contexts and re-injecting scripts"
           clear_context_cache
-          inject_stealth_scripts
+          inject_human_scripts
         end
       end
 
@@ -105,7 +105,7 @@ module HeadlessBrowserTool
       @cdp_context_manager&.clear_all_contexts
     end
 
-    def inject_stealth_scripts
+    def inject_human_scripts
       scripts = [
         { name: "core", source: core_script },
         { name: "chrome", source: chrome_script },
@@ -118,7 +118,7 @@ module HeadlessBrowserTool
         inject_single_script(script_info[:name], script_info[:source])
       end
     rescue StandardError => e
-      HeadlessBrowserTool::Logger.log.error "[CDP] Failed to inject stealth scripts: #{e.message}"
+      HeadlessBrowserTool::Logger.log.error "[CDP] Failed to inject human scripts: #{e.message}"
       raise
     end
 
@@ -161,11 +161,11 @@ module HeadlessBrowserTool
     end
 
     def chrome_script
-      CDPStealthScripts.chrome_script
+      CDPHumanScripts.chrome_script
     end
 
     def plugins_script
-      CDPStealthScripts.plugins_script
+      CDPHumanScripts.plugins_script
     end
 
     def permissions_script

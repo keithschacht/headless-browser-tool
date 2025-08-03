@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module HeadlessBrowserTool
-  module CDPStealthScripts # rubocop:disable Metrics/ModuleLength
+  module CDPHumanScripts # rubocop:disable Metrics/ModuleLength
     class << self
       def chrome_script
         <<~JS

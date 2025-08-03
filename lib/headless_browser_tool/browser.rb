@@ -4,22 +4,26 @@ require "capybara"
 require "capybara/dsl"
 require "selenium-webdriver"
 require_relative "logger"
-require_relative "stealth_mode"
-require_relative "cdp_stealth"
+require_relative "human_mode"
+require_relative "cdp_human"
 require_relative "cdp_executor"
 require_relative "cdp_context_manager"
+require_relative "cdp_element_helper"
 
 module HeadlessBrowserTool
   class Browser
     include Capybara::DSL
-    include StealthMode
-    include CDPStealth
+    include HumanMode
+    include CDPHuman
+    include CDPElementHelper
 
     attr_reader :session
     attr_accessor :previous_state
 
-    def initialize(headless: true, be_human: false)
+    def initialize(headless: true, be_human: false, be_mostly_human: false)
       @be_human = be_human
+      @be_mostly_human = be_mostly_human
+      @human_mode = be_human || be_mostly_human # Either flag enables human mode
       @session_id = "browser_#{object_id}"
       @driver_name = :"selenium_chrome_#{object_id}"
       configure_capybara(headless)
@@ -39,7 +43,7 @@ module HeadlessBrowserTool
     def visit(url)
       @session.visit(url)
 
-      # Try to initialize CDP on first real navigation if in be_human mode
+      # Try to initialize CDP on first real navigation if in be_human mode (not mostly_human)
       if @be_human && !@cdp_setup_attempted && url != "about:blank"
         @cdp_setup_attempted = true
         begin
@@ -47,14 +51,19 @@ module HeadlessBrowserTool
           sleep 0.1
           setup_cdp(@session.driver.browser)
           @cdp_initialized = true
-          HeadlessBrowserTool::Logger.log.info "CDP stealth mode enabled on first navigation"
-          
-          # Also inject stealth JS via regular Selenium to ensure it works
-          inject_stealth_js(@session)
+          HeadlessBrowserTool::Logger.log.info "CDP human mode enabled on first navigation"
+
+          # Also inject human JS via regular Selenium to ensure it works
+          inject_human_js(@session)
         rescue StandardError => e
           HeadlessBrowserTool::Logger.log.warn "CDP setup failed, falling back to JS injection: #{e.message}"
-          inject_stealth_js(@session)
+          inject_human_js(@session)
         end
+      elsif @be_mostly_human && !@cdp_setup_attempted && url != "about:blank"
+        # For mostly_human, only inject human JS without CDP
+        @cdp_setup_attempted = true # Mark as attempted so we don't run this again
+        inject_human_js(@session)
+        HeadlessBrowserTool::Logger.log.info "Human mode (without CDP) enabled on first navigation"
       end
 
       { message: "Navigated to #{url}" }
@@ -77,27 +86,35 @@ module HeadlessBrowserTool
 
     # Interaction tools
     def click(selector)
-      element = @session.find(selector)
-      element.click
-      { message: "Clicked element: #{selector}" }
+      cdp_element_action(selector, :click) do
+        element = @session.find(selector)
+        element.click
+        { message: "Clicked element: #{selector}" }
+      end
     end
 
     def right_click(selector)
-      element = @session.find(selector)
-      element.right_click
-      { message: "Right-clicked element: #{selector}" }
+      cdp_element_action(selector, :right_click) do
+        element = @session.find(selector)
+        element.right_click
+        { message: "Right-clicked element: #{selector}" }
+      end
     end
 
     def double_click(selector)
-      element = @session.find(selector)
-      element.double_click
-      { message: "Double-clicked element: #{selector}" }
+      cdp_element_action(selector, :double_click) do
+        element = @session.find(selector)
+        element.double_click
+        { message: "Double-clicked element: #{selector}" }
+      end
     end
 
     def hover(selector)
-      element = @session.find(selector)
-      element.hover
-      { message: "Hovered over element: #{selector}" }
+      cdp_element_action(selector, :hover) do
+        element = @session.find(selector)
+        element.hover
+        { message: "Hovered over element: #{selector}" }
+      end
     end
 
     def drag(source_selector, target_selector)
@@ -119,31 +136,39 @@ module HeadlessBrowserTool
     end
 
     def find_all(selector)
-      elements = @session.all(selector)
-      elements.map do |element|
-        {
-          tag_name: element.tag_name,
-          text: element.text,
-          visible: element.visible?,
-          attributes: extract_attributes(element),
-          value: element.value
-        }
+      cdp_find_elements(selector) do
+        elements = @session.all(selector)
+        elements.map do |element|
+          {
+            tag_name: element.tag_name,
+            text: element.text,
+            visible: element.visible?,
+            attributes: extract_attributes(element),
+            value: element.value
+          }
+        end
       end
     end
 
     def get_text(selector)
-      element = @session.find(selector)
-      element.text
+      cdp_element_action(selector, :get_text) do
+        element = @session.find(selector)
+        element.text
+      end
     end
 
     def get_attribute(selector, attribute_name)
-      element = @session.find(selector)
-      element[attribute_name]
+      cdp_element_action(selector, :get_attribute, attribute_name) do
+        element = @session.find(selector)
+        element[attribute_name]
+      end
     end
 
     def get_value(selector)
-      element = @session.find(selector)
-      element.value
+      cdp_element_action(selector, :get_value) do
+        element = @session.find(selector)
+        element.value
+      end
     end
 
     def is_visible?(selector)
@@ -171,27 +196,37 @@ module HeadlessBrowserTool
 
     # Form tools
     def fill_in(field, value)
-      @session.fill_in(field, with: value)
-      { message: "Filled '#{field}' with '#{value}'" }
+      cdp_element_action(field, :set_value, value) do
+        @session.fill_in(field, with: value)
+        { message: "Filled '#{field}' with '#{value}'" }
+      end
     end
 
     def select(value, dropdown_selector)
-      @session.select(value, from: dropdown_selector)
-      { message: "Selected '#{value}' from '#{dropdown_selector}'" }
+      cdp_element_action(dropdown_selector, :select_option, value) do
+        @session.select(value, from: dropdown_selector)
+        { message: "Selected '#{value}' from '#{dropdown_selector}'" }
+      end
     end
 
     def check(checkbox_selector)
-      @session.check(checkbox_selector)
-      { message: "Checked '#{checkbox_selector}'" }
+      cdp_element_action(checkbox_selector, :check) do
+        @session.check(checkbox_selector)
+        { message: "Checked '#{checkbox_selector}'" }
+      end
     end
 
     def uncheck(checkbox_selector)
-      @session.uncheck(checkbox_selector)
-      { message: "Unchecked '#{checkbox_selector}'" }
+      cdp_element_action(checkbox_selector, :uncheck) do
+        @session.uncheck(checkbox_selector)
+        { message: "Unchecked '#{checkbox_selector}'" }
+      end
     end
 
     def choose(radio_button_selector)
-      @session.choose(radio_button_selector)
+      cdp_element_action(radio_button_selector, :click) do
+        @session.choose(radio_button_selector)
+      end
       { message: "Chose '#{radio_button_selector}'" }
     end
 
@@ -201,13 +236,17 @@ module HeadlessBrowserTool
     end
 
     def click_button(button_text_or_selector)
-      @session.click_button(button_text_or_selector)
-      { message: "Clicked button: #{button_text_or_selector}" }
+      cdp_element_action(button_text_or_selector, :click) do
+        @session.click_button(button_text_or_selector)
+        { message: "Clicked button: #{button_text_or_selector}" }
+      end
     end
 
     def click_link(link_text_or_selector)
-      @session.click_link(link_text_or_selector)
-      { message: "Clicked link: #{link_text_or_selector}" }
+      cdp_element_action(link_text_or_selector, :click) do
+        @session.click_link(link_text_or_selector)
+        { message: "Clicked link: #{link_text_or_selector}" }
+      end
     end
 
     # Info tools
@@ -232,9 +271,8 @@ module HeadlessBrowserTool
       if @be_human && @cdp_initialized && cdp_available?
         begin
           HeadlessBrowserTool::Logger.log.debug "[CDP] Attempting CDP execution..." if ENV["HBT_CDP_DEBUG"] == "true"
-          result = execute_cdp_script(javascript_code)
+          execute_cdp_script(javascript_code)
           # Return the actual result from CDP execution
-          result
         rescue StandardError => e
           HeadlessBrowserTool::Logger.log.warn "CDP execution failed, falling back: #{e.message}"
           @session.execute_script(javascript_code)
@@ -414,8 +452,8 @@ module HeadlessBrowserTool
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu") if headless
 
-        # Apply human-like browser options if enabled
-        if @be_human
+        # Apply human-like browser options if enabled (for both be_human and be_mostly_human)
+        if @human_mode
           options.add_argument("--disable-blink-features=AutomationControlled")
           options.exclude_switches = ["enable-automation"]
           options.add_preference("credentials_enable_service", false)
@@ -429,7 +467,7 @@ module HeadlessBrowserTool
           options.add_argument("--start-maximized")
           options.add_argument("--disable-extensions")
           options.add_argument("--disable-default-apps")
-          
+
           # Don't override user agent - Chrome's default works perfectly!
         end
 

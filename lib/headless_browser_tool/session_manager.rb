@@ -7,23 +7,24 @@ require "fileutils"
 require_relative "logger"
 require_relative "session_persistence"
 require_relative "directory_setup"
-require_relative "stealth_mode"
+require_relative "human_mode"
 
 module HeadlessBrowserTool
   class SessionManager
-    include StealthMode
+    include HumanMode
     SESSION_TIMEOUT = 30 * 60 # 30 minutes
     CLEANUP_INTERVAL = 60 # 1 minute
     MAX_SESSIONS = 10 # Maximum concurrent sessions
 
     attr_reader :sessions_dir
 
-    def initialize(headless: true, be_human: false)
+    def initialize(headless: true, be_human: false, be_mostly_human: false)
       @sessions = {}
       @session_data = {}
       @mutex = Mutex.new
       @headless = headless
       @be_human = be_human
+      @be_mostly_human = be_mostly_human
 
       # Enable Capybara threadsafe mode for per-session configuration
       Capybara.threadsafe = true
@@ -127,9 +128,9 @@ module HeadlessBrowserTool
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu") if @headless
 
-        # Conditionally apply stealth mode arguments
+        # Conditionally apply human mode arguments
         if @be_human
-          # Stealth mode arguments to avoid detection
+          # Human mode arguments to avoid detection
           options.add_argument("--disable-blink-features=AutomationControlled")
           options.exclude_switches = ["enable-automation"]
           options.add_preference("credentials_enable_service", false)
@@ -166,8 +167,8 @@ module HeadlessBrowserTool
       # With threadsafe mode enabled, each session is isolated
       session = Capybara::Session.new(:selenium_chrome)
 
-      # Inject anti-detection JavaScript on every page load (only if be_human is enabled)
-      inject_stealth_js(session) if @be_human
+      # Inject anti-detection JavaScript on every page load (if either human flag is enabled)
+      inject_human_js(session) if @be_human || @be_mostly_human
 
       # Try to restore previous state
       restore_session_state(session_id, session)

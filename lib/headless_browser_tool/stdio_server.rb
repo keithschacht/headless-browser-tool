@@ -30,7 +30,11 @@ module HeadlessBrowserTool
       )
 
       # Store options for lazy browser initialization
-      Server.browser_options = { headless: options.fetch(:headless, true), be_human: options.fetch(:be_human, false) }
+      Server.browser_options = {
+        headless: options.fetch(:headless, true),
+        be_human: options.fetch(:be_human, false),
+        be_mostly_human: options.fetch(:be_mostly_human, false)
+      }
       Server.single_session_mode = true
 
       # Store session ID for later use
