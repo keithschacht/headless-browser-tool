@@ -151,6 +151,8 @@ module HeadlessBrowserTool
         Object.defineProperty(navigator, 'platform', {
           get: () => 'MacIntel'
         });
+
+        // Don't override userAgent or userAgentData - let Chrome handle it naturally!
       JS
 
       # Execute on initial page

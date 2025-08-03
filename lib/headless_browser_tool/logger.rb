@@ -12,6 +12,7 @@ module HeadlessBrowserTool
       def initialize_logger(mode: :http)
         @instance = if mode == :stdio
                       # In stdio mode, write to log file
+                      DirectorySetup.setup_directories(include_logs: true)
                       log_file = File.join(DirectorySetup::LOGS_DIR, "#{Process.pid}.log")
                       ::Logger.new(log_file, progname: "HBT")
                     else
@@ -24,7 +25,7 @@ module HeadlessBrowserTool
       end
 
       def log
-        @log ||= initialize_logger
+        @instance ||= initialize_logger
       end
     end
   end

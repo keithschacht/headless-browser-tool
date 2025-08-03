@@ -14,7 +14,7 @@ brew install ruby
 ```
 
 ```bash
-gem install headless_browser_tool
+gem install https://github.com/krschacht/headless-browser-tool
 claude mcp add headless-browser hbt stdio --
 claude
 ```
@@ -22,7 +22,7 @@ claude
 If you want to watch the browser work, add the `--no-headless` flag like `hbt stdio -- --no-headless`. If any websites are blocking you because of automation, also add the `--be-human` flag. If you want to persist the browser between Claude sessions, run it in HTTP mode instead:
 
 ```bash
-gem install headless_browser_tool
+gem install https://github.com/krschacht/headless-browser-tool
 hbt start  # Starts an http server, supports the same flags but don't use "--" seperator.
            # You can run it in the background by registering with Launch Agent
            # or simply: nohup hbt start > ~/.hbt/server.log 2>&1 &
@@ -87,6 +87,7 @@ hbt start [OPTIONS]
 - `--single-session` - Use single shared browser session instead of multi-session mode
 - `--session-id SESSION_ID` - Enable session persistence for single session mode (requires `--single-session`)
 - `--show-headers` - Show HTTP request headers for debugging session issues
+- `--be-human` - Be human-like in browser interactions.
 
 **Examples:**
 ```bash

@@ -3,22 +3,30 @@
 require "capybara"
 require "capybara/dsl"
 require "selenium-webdriver"
+require_relative "logger"
 require_relative "stealth_mode"
+require_relative "cdp_stealth"
+require_relative "cdp_executor"
+require_relative "cdp_context_manager"
 
 module HeadlessBrowserTool
   class Browser
     include Capybara::DSL
     include StealthMode
+    include CDPStealth
 
     attr_reader :session
     attr_accessor :previous_state
 
     def initialize(headless: true, be_human: false)
       @be_human = be_human
+      @session_id = "browser_#{object_id}"
+      @driver_name = :"selenium_chrome_#{object_id}"
       configure_capybara(headless)
-      @session = Capybara.current_session
+      @session = Capybara::Session.new(@driver_name)
       @previous_state = {}
-      inject_stealth_js(@session) if @be_human
+      @cdp_initialized = false
+      @cdp_setup_attempted = false
     end
 
     def active?
@@ -30,6 +38,25 @@ module HeadlessBrowserTool
     # Navigation tools
     def visit(url)
       @session.visit(url)
+
+      # Try to initialize CDP on first real navigation if in be_human mode
+      if @be_human && !@cdp_setup_attempted && url != "about:blank"
+        @cdp_setup_attempted = true
+        begin
+          # Small delay to ensure page has loaded
+          sleep 0.1
+          setup_cdp(@session.driver.browser)
+          @cdp_initialized = true
+          HeadlessBrowserTool::Logger.log.info "CDP stealth mode enabled on first navigation"
+          
+          # Also inject stealth JS via regular Selenium to ensure it works
+          inject_stealth_js(@session)
+        rescue StandardError => e
+          HeadlessBrowserTool::Logger.log.warn "CDP setup failed, falling back to JS injection: #{e.message}"
+          inject_stealth_js(@session)
+        end
+      end
+
       { message: "Navigated to #{url}" }
     end
 
@@ -202,12 +229,32 @@ module HeadlessBrowserTool
 
     # JavaScript tools
     def execute_script(javascript_code)
-      @session.execute_script(javascript_code)
-      { message: "Executed JavaScript" }
+      if @be_human && @cdp_initialized && cdp_available?
+        begin
+          HeadlessBrowserTool::Logger.log.debug "[CDP] Attempting CDP execution..." if ENV["HBT_CDP_DEBUG"] == "true"
+          result = execute_cdp_script(javascript_code)
+          # Return the actual result from CDP execution
+          result
+        rescue StandardError => e
+          HeadlessBrowserTool::Logger.log.warn "CDP execution failed, falling back: #{e.message}"
+          @session.execute_script(javascript_code)
+        end
+      else
+        @session.execute_script(javascript_code)
+      end
     end
 
     def evaluate_script(javascript_code)
-      @session.evaluate_script(javascript_code)
+      if @be_human && @cdp_initialized && cdp_available?
+        begin
+          execute_cdp_script(javascript_code)
+        rescue StandardError => e
+          HeadlessBrowserTool::Logger.log.warn "CDP evaluation failed, falling back: #{e.message}"
+          @session.evaluate_script(javascript_code)
+        end
+      else
+        @session.evaluate_script(javascript_code)
+      end
     end
 
     # Utility tools
@@ -360,7 +407,7 @@ module HeadlessBrowserTool
     end
 
     def configure_capybara(headless)
-      Capybara.register_driver :selenium_chrome do |app|
+      Capybara.register_driver @driver_name do |app|
         options = Selenium::WebDriver::Chrome::Options.new
         options.add_argument("--headless") if headless
         options.add_argument("--no-sandbox")
@@ -382,20 +429,14 @@ module HeadlessBrowserTool
           options.add_argument("--start-maximized")
           options.add_argument("--disable-extensions")
           options.add_argument("--disable-default-apps")
-
-          # Set a more common user agent to avoid HeadlessChrome detection
-          # Include proper Chrome version for compatibility with version detection tests
-          user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
-                       "(KHTML, like Gecko) Chrome/131.0.6778.85 Safari/537.36"
-          options.add_argument("--user-agent=#{user_agent}")
+          
+          # Don't override user agent - Chrome's default works perfectly!
         end
 
         Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
       end
 
-      Capybara.default_driver = :selenium_chrome
-      Capybara.javascript_driver = :selenium_chrome
-      Capybara.default_max_wait_time = 10
+      # Don't set global defaults - each session uses its own driver
     end
   end
 end
