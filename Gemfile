@@ -15,3 +15,4 @@ gem "rubocop-minitest"
 gem "rubocop-rake"
 
 gem "claude_swarm"
+gem "webrick", "~> 1.8"

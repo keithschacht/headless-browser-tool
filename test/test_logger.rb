@@ -88,4 +88,47 @@ class TestLogger < Minitest::Test
     assert_respond_to HeadlessBrowserTool::Logger, :instance
     assert_instance_of Logger, HeadlessBrowserTool::Logger.instance
   end
+
+  def test_logger_handles_missing_log_directory
+    # Remove log directory if it exists
+    log_dir = HeadlessBrowserTool::DirectorySetup::LOGS_DIR
+    FileUtils.rm_rf(log_dir)
+
+    # Initialize logger in stdio mode (which uses file logging)
+    HeadlessBrowserTool::Logger.initialize_logger(mode: :stdio)
+
+    # Logger should create the directory
+    assert_path_exists log_dir
+    assert File.directory?(log_dir)
+
+    # Should be able to log without errors
+    HeadlessBrowserTool::Logger.log.info "Test message"
+  end
+
+  def test_logger_handles_mode_switching_mid_execution
+    # Start with HTTP mode
+    HeadlessBrowserTool::Logger.initialize_logger(mode: :http)
+    first_logger = HeadlessBrowserTool::Logger.log
+
+    # Test that HTTP logger is a Logger instance writing to stdout
+    assert_instance_of ::Logger, first_logger
+
+    # Switch to stdio mode
+    HeadlessBrowserTool::Logger.initialize_logger(mode: :stdio)
+    second_logger = HeadlessBrowserTool::Logger.log
+
+    # Should be a different logger instance
+    refute_equal first_logger, second_logger
+
+    # Test that stdio logger is also a Logger instance
+    assert_instance_of ::Logger, second_logger
+
+    # In stdio mode, log files should be created
+    HeadlessBrowserTool::Logger.log.info "STDIO mode message"
+
+    # Verify log file exists
+    log_files = Dir.glob(File.join(HeadlessBrowserTool::DirectorySetup::LOGS_DIR, "*.log"))
+
+    assert_predicate log_files, :any?
+  end
 end
