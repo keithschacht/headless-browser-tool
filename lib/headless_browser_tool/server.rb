@@ -78,7 +78,18 @@ module HeadlessBrowserTool
       end
 
       def get_or_create_browser
-        return @browser_instance if @browser_instance
+        # Check if browser instance exists and is still valid
+        if @browser_instance
+          begin
+            # Try to access the browser to see if it's still alive
+            @browser_instance.session.current_url
+            return @browser_instance
+          rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::SessionNotCreatedError => e
+            # Browser window was closed, need to create a new instance
+            HeadlessBrowserTool::Logger.log.info "Browser window closed (#{e.class}), creating new instance..."
+            @browser_instance = nil
+          end
+        end
 
         HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
         @browser_instance = Browser.new(**@browser_options)

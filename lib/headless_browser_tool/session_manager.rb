@@ -69,7 +69,6 @@ module HeadlessBrowserTool
             # Browser window was closed, remove the dead session
             HeadlessBrowserTool::Logger.log.info "Session #{session_id} browser window closed, creating new session"
             @sessions.delete(session_id)
-            nil
           end
         end
 
