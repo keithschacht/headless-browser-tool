@@ -16,6 +16,18 @@ module HeadlessBrowserTool
 
       @driver = driver
       HeadlessBrowserTool::Logger.log.info "[CDP] Getting devtools..."
+
+      # Try to load selenium/devtools first
+      begin
+        require "selenium/devtools"
+      rescue LoadError => e
+        HeadlessBrowserTool::Logger.log.error "[CDP] Failed to load selenium/devtools: #{e.message}"
+        HeadlessBrowserTool::Logger.log.warn "[CDP] CDP features will be disabled. Falling back to JS injection only."
+        @devtools = nil
+        @cdp_executor = nil
+        return false
+      end
+
       @devtools = driver.devtools
       HeadlessBrowserTool::Logger.log.info "[CDP] Devtools obtained"
 
@@ -40,11 +52,12 @@ module HeadlessBrowserTool
       inject_human_scripts
 
       HeadlessBrowserTool::Logger.log.info "[CDP] Human mode initialized successfully"
+      true
     rescue StandardError => e
       HeadlessBrowserTool::Logger.log.error "[CDP] Failed to setup CDP: #{e.message}"
       @devtools = nil
       @cdp_executor = nil
-      raise
+      false
     end
 
     def cdp_available?

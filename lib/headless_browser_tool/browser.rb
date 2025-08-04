@@ -48,19 +48,20 @@ module HeadlessBrowserTool
       # Try to initialize CDP on first real navigation if in be_human mode (not mostly_human)
       if @be_human && !@cdp_setup_attempted && url != "about:blank"
         @cdp_setup_attempted = true
-        begin
-          # Small delay to ensure page has loaded
-          sleep 0.1
-          setup_cdp(@session.driver.browser)
-          @cdp_initialized = true
-          HeadlessBrowserTool::Logger.log.info "CDP human mode enabled on first navigation"
+        # Small delay to ensure page has loaded
+        sleep 0.1
 
-          # Also inject human JS via regular Selenium to ensure it works
-          inject_human_js(@session)
-        rescue StandardError => e
-          HeadlessBrowserTool::Logger.log.warn "CDP setup failed, falling back to JS injection: #{e.message}"
-          inject_human_js(@session)
+        # setup_cdp now returns true/false instead of raising
+        @cdp_initialized = setup_cdp(@session.driver.browser)
+
+        if @cdp_initialized
+          HeadlessBrowserTool::Logger.log.info "CDP human mode enabled on first navigation"
+        else
+          HeadlessBrowserTool::Logger.log.warn "CDP setup failed, using JS injection fallback"
         end
+
+        # Always inject human JS as well (either as primary or fallback)
+        inject_human_js(@session)
       elsif @be_mostly_human && !@cdp_setup_attempted && url != "about:blank"
         # For mostly_human, only inject human JS without CDP
         @cdp_setup_attempted = true # Mark as attempted so we don't run this again

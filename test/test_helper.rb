@@ -23,7 +23,7 @@ max_workers = if ENV["CI"]
                 ENV.fetch("PARALLEL_WORKERS", 3).to_i
               else
                 # Local development - be conservative
-                ENV.fetch("PARALLEL_WORKERS", 2).to_i
+                ENV.fetch("PARALLEL_WORKERS", 1).to_i
               end
 
 # Ensure we don't exceed reasonable limits
