@@ -4,10 +4,10 @@ require "fileutils"
 
 module HeadlessBrowserTool
   module DirectorySetup
-    HBT_DIR = File.expand_path("~/.hbt")
-    SCREENSHOTS_DIR = File.join(HBT_DIR, "screenshots").freeze
-    SESSIONS_DIR = File.join(HBT_DIR, "sessions").freeze
-    LOGS_DIR = File.join(HBT_DIR, "logs").freeze
+    HBT_DIR = ENV["HBT_DIR"] || File.expand_path("~/.hbt")
+    SCREENSHOTS_DIR = (ENV["HBT_SCREENSHOTS_DIR"] || File.join(HBT_DIR, "screenshots")).freeze
+    SESSIONS_DIR = (ENV["HBT_SESSIONS_DIR"] || File.join(HBT_DIR, "sessions")).freeze
+    LOGS_DIR = (ENV["HBT_LOGS_DIR"] || File.join(HBT_DIR, "logs")).freeze
 
     module_function
 

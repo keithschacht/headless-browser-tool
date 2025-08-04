@@ -21,19 +21,6 @@ module HeadlessBrowserTool
           HeadlessBrowserTool::BrowserAdapter.new(capybara_session, session_id)
         end
       end
-
-      def execute(*args, **kwargs)
-        raise NotImplementedError, "Subclasses must implement the execute method"
-      end
-
-      def call(*args, **kwargs)
-        result = execute(*args, **kwargs)
-        HeadlessBrowserTool::Logger.log.info "CALL: #{self.class.name} #{args.inspect} #{kwargs.inspect} -> #{result.inspect}"
-        result
-      rescue StandardError => e
-        HeadlessBrowserTool::Logger.log.error "ERROR: #{self.class.name} #{args.inspect} #{kwargs.inspect} -> #{e.message}"
-        e.message
-      end
     end
   end
 end

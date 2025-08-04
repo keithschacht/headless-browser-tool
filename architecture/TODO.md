@@ -1,38 +1,6 @@
-  1. CDP-Specific Tests
-    - CDP initialization on first navigation (lazy loading)
-    - CDP fallback when setup fails
-    - All cdp_element_action methods (click, hover, etc. with CDP)
-    - CDP execution context (isolated world vs main world)
-    - CDP navigation handler with different Chrome versions
-  2. Human Mode Tests (complex)
-    - inject_human_js verification (all browser properties masked)
-    - Chrome options verification in human mode
-    - User agent behavior testing
-    - Bot detection test integration
-  3. Complex Tool Tests
-    - drag operations
-    - file upload (attach_file)
-    - execute_script and evaluate_script with complex JS
-    - screenshot with annotations and highlights
-    - visual_diff functionality
-    - auto_narrate and narration history
-  4. Session Persistence Tests
-    - Save/restore session state
-    - Session timeout (30 minutes)
-    - Session cleanup for dead sessions
-    - Browser crash recovery
-  5. Integration Tests
-    - Full MCP protocol flow
-    - Real website testing (not just bot-detector)
-    - Frame/iframe handling
-    - Popup/alert handling
-    - JavaScript error handling
-  6. Concurrent Session Tests
-    - Multiple sessions running simultaneously
-    - Session isolation
-    - Resource management
-  7. Edge Cases and Error Handling
-    - Invalid selectors
-    - Timing issues with dynamic elements
-    - Memory leak testing
-    - Performance benchmarks
+1. **Standardize tool return values**: All tools should return a consistent structure with a standard status field.
+2. **Document tool contracts**: Each tool should clearly document what it returns so tests can have correct expectations.
+3. **Consider making Browser methods match BrowserAdapter**: The Browser class should have the same public interface as BrowserAdapter to avoid confusion.
+4. **Add integration tests for new methods**: When adding methods like `text` or `windows`, ensure they're tested properly.
+5. **Fix Tool Return Values**: Many tools are returning inconsistent status fields
+6. **Handle Nil Returns**: Add defensive coding for tool responses

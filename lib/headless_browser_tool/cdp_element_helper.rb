@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module HeadlessBrowserTool
-  module CDPElementHelper
+  module CDPElementHelper # rubocop:disable Metrics/ModuleLength
     # Execute an action on an element via CDP
     def cdp_element_action(selector, action, value = nil)
       return yield unless @be_human && @cdp_initialized && cdp_available?
@@ -140,5 +140,5 @@ module HeadlessBrowserTool
 
       str.to_s.gsub("\\", "\\\\\\\\").gsub("'", "\\\\'").gsub('"', '\\"').gsub("\n", "\\n").gsub("\r", "\\r")
     end
-  end
+  end # rubocop:enable Metrics/ModuleLength
 end

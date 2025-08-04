@@ -157,7 +157,7 @@ module HeadlessBrowserTool
 
             // Create search pattern
             const flags = #{case_sensitive ? "'g'" : "'gi'"};
-            const pattern = #{regex ? "new RegExp('#{query.gsub("'", "\\\\'")}')" : "new RegExp('#{Regexp.escape(query).gsub("'", "\\\\'")}')"} + ', ' + flags + ')';
+            const pattern = #{regex ? "new RegExp('#{query.gsub("'", "\\\\'").gsub("\\", "\\\\\\\\")}'," : "new RegExp('#{Regexp.escape(query).gsub("'", "\\\\'").gsub("\\", "\\\\\\\\")}',"}  flags);
 
             // Function to highlight text nodes
             function highlightTextNode(textNode) {

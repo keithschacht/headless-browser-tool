@@ -22,7 +22,7 @@ module HeadlessBrowserTool
           removed_elements: find_removed_elements(previous_state[:elements], current_state[:elements]),
           text_changes: find_text_changes(previous_state[:texts], current_state[:texts]),
           form_values_changed: compare_form_values(previous_state[:forms], current_state[:forms]),
-          new_images: current_state[:images] - (previous_state[:images] || []),
+          new_images: (current_state[:images] || []) - (previous_state[:images] || []),
           viewport_position: current_state[:scroll]
         }
 
@@ -162,10 +162,15 @@ module HeadlessBrowserTool
         summary << "✏️ Form fields updated: #{changes[:form_values_changed].keys.join(", ")}" if changes[:form_values_changed].any?
 
         # New significant text
-        summary << "💬 New text appeared: \"#{changes[:text_changes].first[0..100]}...\"" if changes[:text_changes].any?
+        if changes[:text_changes].any?
+          text = changes[:text_changes].first
+          summary << "💬 New text appeared: \"#{text[0..100]}...\""
+        end
 
         # Scroll position
-        summary << "📜 Page scrolled to position: #{changes[:viewport_position][:y]}px" if changes[:viewport_position][:y] > 100
+        if changes[:viewport_position] && changes[:viewport_position][:y] && changes[:viewport_position][:y] > 100
+          summary << "📜 Page scrolled to position: #{changes[:viewport_position][:y]}px"
+        end
 
         # If no changes detected
         summary << "No significant visual changes detected" if summary.empty?

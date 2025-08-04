@@ -81,7 +81,7 @@ module HeadlessBrowserTool
         return @browser_instance if @browser_instance
 
         HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
-        @browser_instance = Browser.new(@browser_options)
+        @browser_instance = Browser.new(**@browser_options)
 
         # Restore session if session_id provided
         restore_single_session if @session_id
@@ -185,7 +185,10 @@ module HeadlessBrowserTool
 
             begin
               tool = tool_class.new
-              result = tool.execute(**tool_args.transform_keys(&:to_sym))
+              # Convert string keys to symbols
+              symbolized_args = {}
+              tool_args&.each { |k, v| symbolized_args[k.to_sym] = v }
+              result = tool.execute(**symbolized_args)
 
               {
                 jsonrpc: "2.0",

@@ -12,7 +12,6 @@ require_relative "cdp_element_helper"
 
 module HeadlessBrowserTool
   class Browser
-    include Capybara::DSL
     include HumanMode
     include CDPHuman
     include CDPElementHelper
@@ -21,6 +20,9 @@ module HeadlessBrowserTool
     attr_accessor :previous_state
 
     def initialize(headless: true, be_human: false, be_mostly_human: false)
+      # Initialize logger if not already initialized
+      HeadlessBrowserTool::Logger.initialize_logger(mode: :http) unless HeadlessBrowserTool::Logger.log
+
       @be_human = be_human
       @be_mostly_human = be_mostly_human
       @human_mode = be_human || be_mostly_human # Either flag enables human mode
@@ -39,7 +41,7 @@ module HeadlessBrowserTool
       false
     end
 
-    # Navigation tools
+    # Navigation tools - delegate to session
     def visit(url)
       @session.visit(url)
 
@@ -125,6 +127,38 @@ module HeadlessBrowserTool
     end
 
     # Element tools
+    def find(selector, **)
+      @session.find(selector, **)
+    end
+
+    def all(selector, **)
+      @session.all(selector, **)
+    end
+
+    def find_button(locator, **)
+      @session.find_button(locator, **)
+    end
+
+    def find_link(locator, **)
+      @session.find_link(locator, **)
+    end
+
+    def find_field(locator, **)
+      @session.find_field(locator, **)
+    end
+
+    def has_css?(selector, **)
+      @session.has_css?(selector, **)
+    end
+
+    def has_selector?(selector, **)
+      @session.has_selector?(selector, **)
+    end
+
+    def current_url
+      @session.current_url
+    end
+
     def find_element(selector)
       element = @session.find(selector)
       {
@@ -204,34 +238,49 @@ module HeadlessBrowserTool
 
     def select(value, dropdown_selector)
       cdp_element_action(dropdown_selector, :select_option, value) do
-        @session.select(value, from: dropdown_selector)
+        # Find the dropdown element first
+        dropdown = @session.find(dropdown_selector)
+        # Use Capybara's select method on the element
+        dropdown.select(value)
         { message: "Selected '#{value}' from '#{dropdown_selector}'" }
       end
     end
 
     def check(checkbox_selector)
       cdp_element_action(checkbox_selector, :check) do
-        @session.check(checkbox_selector)
+        # Find the checkbox element first
+        checkbox = @session.find(checkbox_selector)
+        # Use Capybara's check method on the element
+        checkbox.set(true)
         { message: "Checked '#{checkbox_selector}'" }
       end
     end
 
     def uncheck(checkbox_selector)
       cdp_element_action(checkbox_selector, :uncheck) do
-        @session.uncheck(checkbox_selector)
+        # Find the checkbox element first
+        checkbox = @session.find(checkbox_selector)
+        # Use Capybara's uncheck method on the element
+        checkbox.set(false)
         { message: "Unchecked '#{checkbox_selector}'" }
       end
     end
 
     def choose(radio_button_selector)
       cdp_element_action(radio_button_selector, :click) do
-        @session.choose(radio_button_selector)
+        # Find the radio button element first
+        radio = @session.find(radio_button_selector)
+        # Use Capybara's choose method on the element
+        radio.set(true)
+        { message: "Chose '#{radio_button_selector}'" }
       end
-      { message: "Chose '#{radio_button_selector}'" }
     end
 
     def attach_file(file_field_selector, file_path)
-      @session.attach_file(file_field_selector, file_path)
+      # Find the file input element first
+      file_input = @session.find(file_field_selector)
+      # Use Capybara's attach_file method on the element
+      file_input.set(file_path)
       { message: "Attached '#{file_path}' to '#{file_field_selector}'" }
     end
 
@@ -259,6 +308,10 @@ module HeadlessBrowserTool
     end
 
     def get_page_title
+      @session.title
+    end
+
+    def title
       @session.title
     end
 
@@ -308,7 +361,11 @@ module HeadlessBrowserTool
 
     # Window tools
     def switch_to_window(window_handle)
-      @session.switch_to_window(window_handle)
+      # Find the window object by handle
+      window = @session.windows.find { |w| w.handle == window_handle }
+      raise "Window with handle #{window_handle} not found" unless window
+
+      @session.switch_to_window(window)
       current_window = @session.current_window
 
       {
@@ -377,6 +434,10 @@ module HeadlessBrowserTool
       @session.windows.map(&:handle)
     end
 
+    def current_window_handle
+      @session.current_window.handle
+    end
+
     def maximize_window
       current_window = @session.current_window
       size_before = get_window_size
@@ -413,6 +474,18 @@ module HeadlessBrowserTool
         current_url: @session.current_url,
         title: @session.title
       }
+    end
+
+    def current_window
+      @session.current_window
+    end
+
+    def text
+      @session.text
+    end
+
+    def windows
+      @session.windows
     end
 
     private
