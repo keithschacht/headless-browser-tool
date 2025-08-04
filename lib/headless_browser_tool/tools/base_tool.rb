@@ -6,6 +6,12 @@ require_relative "../logger"
 module HeadlessBrowserTool
   module Tools
     class BaseTool < FastMcp::Tool
+      # FastMCP expects tools to implement 'call', but our tools implement 'execute'
+      # This method delegates to execute for backward compatibility
+      def call(**args)
+        execute(**args)
+      end
+
       protected
 
       def browser
