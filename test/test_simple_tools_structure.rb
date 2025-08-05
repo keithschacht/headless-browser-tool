@@ -12,6 +12,7 @@ class TestSimpleToolsStructure < Minitest::Test
     assert defined?(HeadlessBrowserTool::Tools::HasElementTool)
     assert defined?(HeadlessBrowserTool::Tools::HasTextTool)
     assert defined?(HeadlessBrowserTool::Tools::IsVisibleTool)
+    assert defined?(HeadlessBrowserTool::Tools::GetElementContentTool)
   end
 
   def test_tools_inherit_from_base_tool

@@ -14,6 +14,7 @@ require_relative "tools/find_element_tool"
 require_relative "tools/find_all_tool"
 require_relative "tools/find_elements_containing_text_tool"
 require_relative "tools/get_text_tool"
+require_relative "tools/get_element_content_tool"
 require_relative "tools/get_attribute_tool"
 require_relative "tools/get_value_tool"
 require_relative "tools/is_visible_tool"
@@ -66,6 +67,7 @@ module HeadlessBrowserTool
       FindAllTool,
       FindElementsContainingTextTool,
       GetTextTool,
+      GetElementContentTool,
       GetAttributeTool,
       GetValueTool,
       IsVisibleTool,

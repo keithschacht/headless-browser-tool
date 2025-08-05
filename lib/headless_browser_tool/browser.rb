@@ -3,6 +3,7 @@
 require "capybara"
 require "capybara/dsl"
 require "selenium-webdriver"
+require "reverse_markdown"
 require_relative "logger"
 require_relative "human_mode"
 require_relative "cdp_human"
@@ -190,6 +191,19 @@ module HeadlessBrowserTool
       cdp_element_action(selector, :get_text) do
         element = @session.find(selector)
         element.text
+      end
+    end
+
+    def get_element_content(selector)
+      cdp_element_action(selector, :get_element_content) do
+        element = @session.find(selector)
+        inner_html = element.native.attribute("innerHTML")
+        md = ReverseMarkdown.convert(inner_html.gsub("\n", ""), unknown_tags: :bypass)
+        {
+          selector: selector,
+          markdown: md,
+          status: "success"
+        }
       end
     end
 
