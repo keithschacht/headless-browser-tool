@@ -246,7 +246,11 @@ class TestSessionPersistence < TestBase
 
   def test_session_with_cookies
     # Start a simple server to test cookies (data: URLs don't support cookies)
-    server = WEBrick::HTTPServer.new(Port: 0, Logger: WEBrick::Log.new(File::NULL))
+    server = WEBrick::HTTPServer.new(
+      Port: 0,
+      Logger: WEBrick::Log.new(File::NULL),
+      AccessLog: []
+    )
     port = server.config[:Port]
 
     server.mount_proc "/" do |_req, res|
@@ -282,6 +286,189 @@ class TestSessionPersistence < TestBase
       browser.session.quit
       server.shutdown
     end
+  end
+
+  def test_session_persistence_module_save_and_restore
+    session_id = "test-persistence-#{Time.now.to_i}"
+
+    # Start a simple server for cookies
+    server = WEBrick::HTTPServer.new(
+      Port: 0,
+      Logger: WEBrick::Log.new(File::NULL),
+      AccessLog: []
+    )
+    port = server.config[:Port]
+
+    server.mount_proc "/" do |_req, res|
+      # Set cookies via headers
+      res["Set-Cookie"] = "server_cookie=server_value; Path=/; HttpOnly"
+      res.body = <<~HTML
+        <html>
+          <body>
+            <h1>Session Persistence Test</h1>
+            <input id="test-input" value="initial">
+            <script>
+              // Set client-side cookies
+              document.cookie='client_cookie=client_value';
+              document.cookie='session_cookie=session_value;path=/';
+        #{"      "}
+              // Set storage
+              localStorage.setItem('localKey', 'localValue');
+              localStorage.setItem('userData', JSON.stringify({id: 123, name: 'Test User'}));
+              sessionStorage.setItem('sessionKey', 'sessionValue');
+              sessionStorage.setItem('tempData', 'temporary');
+            </script>
+          </body>
+        </html>
+      HTML
+      res.content_type = "text/html"
+    end
+
+    Thread.new { server.start }
+    sleep 0.1
+
+    # First browser session
+    browser1 = HeadlessBrowserTool::Browser.new(headless: true)
+
+    begin
+      # Visit page and set up state
+      browser1.visit("http://localhost:#{port}/")
+      browser1.fill_in("test-input", "modified_value")
+
+      # Add a manual cookie via Selenium
+      browser1.session.driver.browser.manage.add_cookie(
+        name: "manual_cookie",
+        value: "manual_value",
+        domain: "localhost",
+        path: "/"
+      )
+
+      # Resize window
+      browser1.session.current_window.resize_to(1234, 567)
+      sleep 0.5 # Let resize take effect
+
+      # Save the session using SessionPersistence module
+      HeadlessBrowserTool::SessionPersistence.save_session(session_id, browser1.session)
+
+      # Verify session file was created (SessionPersistence uses its own path)
+      session_file = File.join(HeadlessBrowserTool::SessionPersistence::SESSIONS_DIR, "#{session_id}.json")
+
+      assert_path_exists session_file, "Session file should be created"
+
+      # Read and verify saved data structure
+      saved_data = JSON.parse(File.read(session_file))
+
+      assert_equal session_id, saved_data["session_id"]
+      assert saved_data["saved_at"]
+      assert_equal "http://localhost:#{port}/", saved_data["current_url"]
+
+      # Verify cookies were saved
+      assert_kind_of Array, saved_data["cookies"]
+      cookie_names = saved_data["cookies"].map { |c| c["name"] }
+
+      assert_includes cookie_names, "server_cookie"
+      assert_includes cookie_names, "client_cookie"
+      assert_includes cookie_names, "session_cookie"
+      assert_includes cookie_names, "manual_cookie"
+
+      # Verify storage was saved
+      assert_equal "localValue", saved_data["local_storage"]["localKey"]
+      assert_includes saved_data["local_storage"]["userData"], "Test User"
+      assert_equal "sessionValue", saved_data["session_storage"]["sessionKey"]
+      assert_equal "temporary", saved_data["session_storage"]["tempData"]
+
+      # Verify window size was saved
+      assert_equal 1234, saved_data["window_size"]["width"]
+      assert_equal 567, saved_data["window_size"]["height"]
+    ensure
+      browser1.session.quit
+    end
+
+    # Second browser session - restore
+    browser2 = HeadlessBrowserTool::Browser.new(headless: true)
+
+    begin
+      # Start with blank page
+      browser2.visit("about:blank")
+
+      # Clear any default cookies
+      browser2.session.driver.browser.manage.delete_all_cookies
+
+      # Restore the session
+      result = HeadlessBrowserTool::SessionPersistence.restore_session(session_id, browser2.session)
+
+      assert result, "Session restoration should succeed"
+
+      # Verify URL was restored
+      assert_equal "http://localhost:#{port}/", browser2.current_url
+
+      # Verify cookies were restored
+      restored_cookies = browser2.session.driver.browser.manage.all_cookies
+      cookie_names = restored_cookies.map { |c| c[:name] }
+
+      # Check that our cookies exist
+      assert_includes cookie_names, "client_cookie", "client_cookie should be restored"
+      assert_includes cookie_names, "session_cookie", "session_cookie should be restored"
+      assert_includes cookie_names, "manual_cookie", "manual_cookie should be restored"
+
+      # NOTE: HttpOnly cookies like server_cookie may not be visible to driver.manage.all_cookies
+      # but they should still be sent with requests
+
+      # Verify storage was restored
+      local_key = browser2.evaluate_script("localStorage.getItem('localKey')")
+
+      assert_equal "localValue", local_key
+
+      user_data = browser2.evaluate_script("localStorage.getItem('userData')")
+
+      assert_includes user_data, "Test User"
+
+      session_key = browser2.evaluate_script("sessionStorage.getItem('sessionKey')")
+
+      assert_equal "sessionValue", session_key
+
+      temp_data = browser2.evaluate_script("sessionStorage.getItem('tempData')")
+
+      assert_equal "temporary", temp_data
+
+      # Verify window size was restored
+      size = browser2.session.current_window.size
+
+      assert_equal 1234, size[0]
+      assert_equal 567, size[1]
+
+      # Verify the input value is back to initial (page was reloaded)
+      input_value = browser2.find("#test-input").value
+
+      assert_equal "initial", input_value
+    ensure
+      browser2.session.quit
+      server.shutdown
+    end
+  end
+
+  def test_session_persistence_helper_methods
+    session_id = "test-helpers-#{Time.now.to_i}"
+
+    # Test session_exists? when doesn't exist
+    refute HeadlessBrowserTool::SessionPersistence.session_exists?(session_id)
+
+    # Create a dummy session file
+    session_file = File.join(HeadlessBrowserTool::SessionPersistence::SESSIONS_DIR, "#{session_id}.json")
+    File.write(session_file, JSON.pretty_generate({
+                                                    session_id: session_id,
+                                                    saved_at: Time.now.iso8601,
+                                                    current_url: "https://example.com"
+                                                  }))
+
+    # Test session_exists? when exists
+    assert HeadlessBrowserTool::SessionPersistence.session_exists?(session_id)
+
+    # Test delete_session
+    HeadlessBrowserTool::SessionPersistence.delete_session(session_id)
+
+    refute_path_exists session_file
+    refute HeadlessBrowserTool::SessionPersistence.session_exists?(session_id)
   end
 
   private

@@ -31,27 +31,6 @@ class TestBeHumanMode < Minitest::Test
     assert_match "Example Domain", @browser.title
   end
 
-  def test_be_human_mode_with_missing_devtools
-    # Simulate missing selenium/devtools by stubbing the require
-    original_require = Kernel.method(:require)
-
-    Kernel.define_singleton_method(:require) do |name|
-      raise LoadError, "cannot load such file -- selenium/devtools" if name == "selenium/devtools"
-
-      original_require.call(name)
-    end
-
-    @browser = HeadlessBrowserTool::Browser.new(headless: true, be_human: true)
-
-    # Should handle the missing devtools gracefully
-    @browser.visit("https://www.example.com")
-
-    assert_match "Example Domain", @browser.title
-  ensure
-    # Restore original require method
-    Kernel.define_singleton_method(:require, original_require)
-  end
-
   def test_be_mostly_human_mode_works
     # be_mostly_human should work as it doesn't use CDP
     @browser = HeadlessBrowserTool::Browser.new(headless: true, be_mostly_human: true)

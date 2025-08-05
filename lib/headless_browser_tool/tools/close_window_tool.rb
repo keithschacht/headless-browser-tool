@@ -22,12 +22,14 @@ module HeadlessBrowserTool
         # If error occurred, return the error status
         return result if result[:status] == "error"
 
+        # Use the data from the browser.close_window result instead of querying again
+        # This avoids InvalidSessionIdError when the session is terminated
         {
           closed_window: window_handle,
           was_current: window_handle == current_window_handle,
           previous_windows: initial_windows.map(&:handle),
-          remaining_windows: browser.windows.map(&:handle),
-          current_window: browser.windows.any? ? browser.current_window.handle : nil,
+          remaining_windows: result[:remaining_windows] || 0,
+          current_window: result[:current_window_handle],
           status: "closed"
         }
       end

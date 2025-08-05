@@ -10,9 +10,11 @@ module HeadlessBrowserTool
       # This method delegates to execute for backward compatibility
       def call(**args)
         execute(**args)
-      rescue Selenium::WebDriver::Error::NoSuchWindowError
-        # Browser window was closed, reset the browser instance and retry once
-        HeadlessBrowserTool::Logger.log.info "Browser window closed, creating new instance and retrying..."
+      rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::InvalidSessionIdError => e
+        # Browser window was closed or session terminated, reset the browser instance and retry once
+        error_type = e.class.name.split("::").last
+        error_msg = e.message.split("\n").first
+        HeadlessBrowserTool::Logger.log.info "Browser #{error_type}: #{error_msg}, creating new instance and retrying..."
 
         if HeadlessBrowserTool::Server.single_session_mode
           # Force browser recreation by setting instance to nil

@@ -2,12 +2,18 @@
 
 require "json"
 require "fileutils"
+require "time"
 require_relative "logger"
 
 module HeadlessBrowserTool
   module SessionPersistence # rubocop:disable Metrics/ModuleLength
     BLANK_URLS = ["about:blank", "data:,"].freeze
-    SESSIONS_DIR = File.join(".hbt", "sessions").freeze
+    # Use ~/.hbt if running from root, otherwise use .hbt in current directory
+    SESSIONS_DIR = if Dir.pwd == "/"
+                     File.join(File.expand_path("~/.hbt"), "sessions")
+                   else
+                     File.join(".hbt", "sessions")
+                   end.freeze
 
     module_function
 
@@ -29,7 +35,6 @@ module HeadlessBrowserTool
         }
 
         File.write(session_file, JSON.pretty_generate(state))
-        HeadlessBrowserTool::Logger.log.info "Saved session to #{session_file}"
       rescue StandardError => e
         HeadlessBrowserTool::Logger.log.info "Error saving session: #{e.message}"
       end
@@ -41,7 +46,6 @@ module HeadlessBrowserTool
 
       begin
         state = JSON.parse(File.read(session_file))
-        HeadlessBrowserTool::Logger.log.info "Restoring session from #{session_file}"
 
         # Visit the URL first (needed to set cookies/storage for the domain)
         capybara_session.visit(state["current_url"]) if state["current_url"] && !BLANK_URLS.include?(state["current_url"])
@@ -63,7 +67,6 @@ module HeadlessBrowserTool
           )
         end
 
-        HeadlessBrowserTool::Logger.log.info "Session restored successfully"
         true
       rescue StandardError => e
         HeadlessBrowserTool::Logger.log.info "Error restoring session: #{e.message}"
@@ -125,9 +128,21 @@ module HeadlessBrowserTool
 
       cookies.each do |cookie|
         cookie_hash = cookie.transform_keys(&:to_sym)
+
+        # Convert expires string to Time object if present
+        if cookie_hash[:expires]
+          begin
+            cookie_hash[:expires] = Time.parse(cookie_hash[:expires])
+          rescue StandardError
+            # If parsing fails, remove the expires field
+            cookie_hash.delete(:expires)
+          end
+        end
+
         # Remove browser-specific fields that can't be set
         cookie_hash.delete(:same_site)
-        cookie_hash.delete(:http_only) unless cookie_hash[:httpOnly]
+        cookie_hash.delete(:http_only)
+
         session.driver.browser.manage.add_cookie(cookie_hash)
       end
     rescue StandardError => e

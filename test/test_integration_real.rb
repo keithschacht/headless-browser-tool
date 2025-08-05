@@ -317,7 +317,7 @@ class TestIntegrationReal < TestBase
     close_result = parse_tool_result(result)
 
     assert_equal "closed", close_result["status"]
-    assert_equal 1, close_result["remaining_windows"].length
+    assert_equal 1, close_result["remaining_windows"]
   end
 
   def test_error_handling

@@ -5,10 +5,10 @@ PATH
       capybara
       fast-mcp-annotations (~> 1.5)
       json
-      nokogiri
       ostruct
       puma
       rackup
+      reverse_markdown
       selenium-devtools
       selenium-webdriver (>= 4.0.0)
       sinatra
@@ -138,6 +138,8 @@ GEM
     regexp_parser (2.10.0)
     reline (0.6.1)
       io-console (~> 0.5)
+    reverse_markdown (3.0.0)
+      nokogiri
     rexml (3.4.1)
     rubocop (1.75.7)
       json (~> 2.3)

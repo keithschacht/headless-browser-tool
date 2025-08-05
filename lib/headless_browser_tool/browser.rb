@@ -429,22 +429,48 @@ module HeadlessBrowserTool
         window.close
       rescue ArgumentError => e
         # Capybara raises ArgumentError when trying to close the primary window
-        # We'll allow it and return success
         raise unless e.message.include?("primary window")
-        # This is fine - just means we're closing the last window
 
-        # Re-raise if it's a different ArgumentError
+        # Use Selenium driver directly to close the primary window
+        # First switch to the window we want to close if not already there
+        @session.switch_to_window(window) if window_handle != current_handle
+
+        # Close using Selenium driver's close method
+        @session.driver.browser.close
+
+        # After closing, the session might be invalid if it was the last window
+        # Try to switch to another window if any remain
+        begin
+          remaining_windows = @session.windows.reject { |w| w.handle == window_handle }
+          @session.switch_to_window(remaining_windows.first) if remaining_windows.any?
+        rescue Selenium::WebDriver::Error::InvalidSessionIdError
+          # Session is terminated - this is expected when closing the last window
+        end
       end
 
       # Save session state if we have a session_id
-      SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+      begin
+        SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+      rescue Selenium::WebDriver::Error::InvalidSessionIdError
+        # Can't save if session is terminated
+      end
+
+      # Build response, handling potential invalid session
+      begin
+        remaining_count = @session.windows.length
+        current_handle = @session.windows.any? ? @session.current_window.handle : nil
+      rescue Selenium::WebDriver::Error::InvalidSessionIdError
+        # Session terminated - no windows remain
+        remaining_count = 0
+        current_handle = nil
+      end
 
       {
         status: "success",
         closed_window_handle: window_handle,
-        remaining_windows: @session.windows.length,
+        remaining_windows: remaining_count,
         initial_windows_count: initial_windows_count,
-        current_window_handle: @session.windows.any? ? @session.current_window.handle : nil
+        current_window_handle: current_handle
       }
     end
 
