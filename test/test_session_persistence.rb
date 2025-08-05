@@ -351,7 +351,7 @@ class TestSessionPersistence < TestBase
       HeadlessBrowserTool::SessionPersistence.save_session(session_id, browser1.session)
 
       # Verify session file was created (SessionPersistence uses its own path)
-      session_file = File.join(HeadlessBrowserTool::SessionPersistence::SESSIONS_DIR, "#{session_id}.json")
+      session_file = File.join(HeadlessBrowserTool::DirectorySetup::SESSIONS_DIR, "#{session_id}.json")
 
       assert_path_exists session_file, "Session file should be created"
 
@@ -454,7 +454,7 @@ class TestSessionPersistence < TestBase
     refute HeadlessBrowserTool::SessionPersistence.session_exists?(session_id)
 
     # Create a dummy session file
-    session_file = File.join(HeadlessBrowserTool::SessionPersistence::SESSIONS_DIR, "#{session_id}.json")
+    session_file = File.join(HeadlessBrowserTool::DirectorySetup::SESSIONS_DIR, "#{session_id}.json")
     File.write(session_file, JSON.pretty_generate({
                                                     session_id: session_id,
                                                     saved_at: Time.now.iso8601,

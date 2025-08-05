@@ -4,24 +4,19 @@ require "json"
 require "fileutils"
 require "time"
 require_relative "logger"
+require_relative "directory_setup"
 
 module HeadlessBrowserTool
   module SessionPersistence # rubocop:disable Metrics/ModuleLength
     BLANK_URLS = ["about:blank", "data:,"].freeze
-    # Use ~/.hbt if running from root, otherwise use .hbt in current directory
-    SESSIONS_DIR = if Dir.pwd == "/"
-                     File.join(File.expand_path("~/.hbt"), "sessions")
-                   else
-                     File.join(".hbt", "sessions")
-                   end.freeze
 
     module_function
 
     def save_session(session_id, capybara_session)
       return unless session_id && capybara_session
 
-      FileUtils.mkdir_p(SESSIONS_DIR)
-      session_file = File.join(SESSIONS_DIR, "#{session_id}.json")
+      FileUtils.mkdir_p(DirectorySetup::SESSIONS_DIR)
+      session_file = File.join(DirectorySetup::SESSIONS_DIR, "#{session_id}.json")
 
       begin
         state = {
@@ -41,7 +36,7 @@ module HeadlessBrowserTool
     end
 
     def restore_session(session_id, capybara_session)
-      session_file = File.join(SESSIONS_DIR, "#{session_id}.json")
+      session_file = File.join(DirectorySetup::SESSIONS_DIR, "#{session_id}.json")
       return unless File.exist?(session_file)
 
       begin
@@ -81,11 +76,11 @@ module HeadlessBrowserTool
     end
 
     def session_exists?(session_id)
-      File.exist?(File.join(SESSIONS_DIR, "#{session_id}.json"))
+      File.exist?(File.join(DirectorySetup::SESSIONS_DIR, "#{session_id}.json"))
     end
 
     def delete_session(session_id)
-      session_file = File.join(SESSIONS_DIR, "#{session_id}.json")
+      session_file = File.join(DirectorySetup::SESSIONS_DIR, "#{session_id}.json")
       FileUtils.rm_f(session_file)
     end
 
