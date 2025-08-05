@@ -131,25 +131,15 @@ module HeadlessBrowserTool
         if @be_human
           # Human mode arguments to avoid detection
           options.add_argument("--disable-blink-features=AutomationControlled")
-          options.exclude_switches = ["enable-automation"]
+          # Exclude the enable-automation switch
+          options.exclude_switches << "enable-automation"
           options.add_preference("credentials_enable_service", false)
           options.add_preference("profile.password_manager_enabled", false)
 
-          # Additional anti-detection measures
-          options.add_argument("--disable-web-security")
-          options.add_argument("--disable-features=IsolateOrigins,site-per-process")
-          options.add_argument("--allow-running-insecure-content")
-          options.add_argument("--disable-setuid-sandbox")
-          options.add_argument("--disable-infobars")
-          options.add_argument("--window-size=1920,1080")
+          # Window configuration - just use start-maximized like a normal user
           options.add_argument("--start-maximized")
-          options.add_argument("--disable-extensions")
-          options.add_argument("--disable-default-apps")
 
-          # Set a more common user agent to avoid HeadlessChrome detection
-          user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
-                       "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
-          options.add_argument("--user-agent=#{user_agent}")
+          # Don't override user agent - Chrome's default works perfectly!
         end
 
         Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)

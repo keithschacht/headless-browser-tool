@@ -529,18 +529,13 @@ module HeadlessBrowserTool
         # Apply human-like browser options if enabled (for both be_human and be_mostly_human)
         if @human_mode
           options.add_argument("--disable-blink-features=AutomationControlled")
-          options.exclude_switches = ["enable-automation"]
+          # Exclude the enable-automation switch
+          options.exclude_switches << "enable-automation"
           options.add_preference("credentials_enable_service", false)
           options.add_preference("profile.password_manager_enabled", false)
-          options.add_argument("--disable-web-security")
-          options.add_argument("--disable-features=IsolateOrigins,site-per-process")
-          options.add_argument("--allow-running-insecure-content")
-          options.add_argument("--disable-setuid-sandbox")
-          options.add_argument("--disable-infobars")
-          options.add_argument("--window-size=1920,1080")
+
+          # Window configuration - just use start-maximized like a normal user
           options.add_argument("--start-maximized")
-          options.add_argument("--disable-extensions")
-          options.add_argument("--disable-default-apps")
 
           # Don't override user agent - Chrome's default works perfectly!
         end
