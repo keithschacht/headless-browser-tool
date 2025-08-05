@@ -219,36 +219,6 @@ class TestComplexTools < TestBase
     # but the tool should still work
   end
 
-  def test_auto_narrate_and_history_tools
-    # Enable auto-narration
-    result = make_tool_request("auto_narrate", { enabled: true })
-
-    # auto_narrate returns a string message, not a hash
-    assert_match(/Auto-narration enabled/, result)
-
-    # Perform some actions that should be narrated
-    make_tool_request("visit",
-                      { url: "data:text/html,<html><body><h1>Narration Test</h1>" \
-                             "<button>Click me</button><input type='text' id='test-input'>" \
-                             "</body></html>" })
-    make_tool_request("click", { selector: "button" })
-    make_tool_request("fill_in", { field: "test-input", value: "Test narration" })
-
-    # Get narration history
-    history_result = make_tool_request("get_narration_history", {})
-
-    # The history tool returns a string, either with history or a message
-    assert_kind_of String, history_result
-    # Since we enabled narration and performed actions, we should have history
-    # or at least get the "No narration history available" message
-    assert_predicate history_result.length, :positive?
-
-    # Disable narration
-    disable_result = make_tool_request("auto_narrate", { enabled: false })
-
-    assert_match(/Auto-narration disabled/, disable_result)
-  end
-
   def test_complex_javascript_with_promises
     make_tool_request("visit", { url: "data:text/html,<html><body><div id='async-result'></div></body></html>" })
 

@@ -38,7 +38,7 @@ claude
 - **Session persistence** - Sessions survive server restarts with cookies and state preservation
 - **Two server modes** - HTTP server mode and stdio mode for different integration patterns
 - **Smart screenshot tools** - With annotations, highlighting, and visual diff capabilities
-- **AI-assisted tools** - Auto-narration and intelligent page analysis
+- **AI-assisted tools** - Intelligent page analysis and context extraction
 - **Comprehensive logging** - Separate log files for stdio mode to avoid protocol interference
 - **Structured responses** - All tools return rich, structured data instead of simple strings
 - **Smart element selectors** - Tools returning multiple elements include selectors for each
@@ -398,9 +398,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `auto_narrate` | Generate page description | `focus_on` |
-| `get_narration_history` | Get narration history | None |
-| `visual_diff` | Compare screenshots | `before_path`, `after_path` (required) |
+| `visual_diff` | Summarize what changed on the page since last call to this tool | |
 
 ### Tool Response Structure
 

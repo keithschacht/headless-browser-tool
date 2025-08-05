@@ -111,7 +111,10 @@ module HeadlessBrowserTool
         HeadlessBrowserTool::Logger.log.debug "[CDP] Main frame started loading" if params["frameId"] == @main_frame_id
       end
     rescue StandardError => e
-      HeadlessBrowserTool::Logger.log.warn "[CDP] Failed to register navigation handler: #{e.message}"
+      # Suppress known Chrome/Selenium version mismatch warnings
+      unless e.message.include?("wrong constant name") && e.message.include?("Selenium::DevTools")
+        HeadlessBrowserTool::Logger.log.warn "[CDP] Failed to register navigation handler: #{e.message}"
+      end
     end
 
     def clear_context_cache

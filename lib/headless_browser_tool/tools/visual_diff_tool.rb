@@ -6,7 +6,7 @@ module HeadlessBrowserTool
   module Tools
     class VisualDiffTool < BaseTool
       tool_name "visual_diff"
-      description "Capture what changed on the page after an action"
+      description "Capture what changed on the page since last call to this tool"
 
       def execute
         # Capture current state

@@ -46,8 +46,6 @@ require_relative "tools/search_page_tool"
 require_relative "tools/search_source_tool"
 require_relative "tools/visual_diff_tool"
 require_relative "tools/get_page_context_tool"
-require_relative "tools/auto_narrate_tool"
-require_relative "tools/get_narration_history_tool"
 require_relative "tools/get_session_info_tool"
 require_relative "tools/about_tool"
 
@@ -99,8 +97,6 @@ module HeadlessBrowserTool
       SearchSourceTool,
       VisualDiffTool,
       GetPageContextTool,
-      AutoNarrateTool,
-      GetNarrationHistoryTool,
       GetSessionInfoTool,
       AboutTool
     ].freeze

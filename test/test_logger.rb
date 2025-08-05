@@ -31,6 +31,7 @@ class TestLogger < Minitest::Test
 
     begin
       HeadlessBrowserTool::Logger.initialize_logger(mode: :http)
+      HeadlessBrowserTool::Logger.log.level = ::Logger::INFO
       HeadlessBrowserTool::Logger.log.info "Test message via log"
       HeadlessBrowserTool::Logger.instance.info "Test message via instance"
 
@@ -53,6 +54,7 @@ class TestLogger < Minitest::Test
     $stdout = captured_output
 
     begin
+      HeadlessBrowserTool::Logger.log.level = ::Logger::INFO
       HeadlessBrowserTool::Logger.log.info "Test message via log"
       HeadlessBrowserTool::Logger.instance.info "Test message via instance"
 
