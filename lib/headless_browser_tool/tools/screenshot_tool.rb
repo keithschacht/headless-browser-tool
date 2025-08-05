@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base_tool"
+require_relative "../directory_setup"
 require "time"
 
 module HeadlessBrowserTool
@@ -17,7 +18,7 @@ module HeadlessBrowserTool
       end
 
       def execute(filename: nil, highlight_selectors: [], annotate: false, full_page: false)
-        screenshots_dir = "./.hbt/screenshots"
+        screenshots_dir = HeadlessBrowserTool::DirectorySetup::SCREENSHOTS_DIR
         timestamp = Time.now.strftime("%Y%m%d_%H%M%S_%L")
 
         # Generate filename with timestamp

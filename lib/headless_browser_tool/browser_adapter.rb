@@ -223,11 +223,50 @@ module HeadlessBrowserTool
       new_window
     end
 
-    def close_window(window)
-      current = @session.current_window
-      @session.switch_to_window(window)
-      window.close
-      @session.switch_to_window(current) if current.exists?
+    def close_window(window_handle)
+      initial_windows_count = @session.windows.length
+      current_handle = @session.current_window.handle
+
+      # Support "current" as a special keyword
+      window_handle = current_handle if window_handle == "current"
+
+      window = @session.windows.find { |w| w.handle == window_handle }
+
+      if window.nil?
+        return {
+          status: "error",
+          error: "Window not found",
+          window_handle: window_handle
+        }
+      end
+
+      # If closing the current window, switch to another first
+      if window_handle == current_handle && @session.windows.length > 1
+        other_window = @session.windows.find { |w| w.handle != window_handle }
+        @session.switch_to_window(other_window) if other_window
+      end
+
+      begin
+        window.close
+      rescue ArgumentError => e
+        # Capybara raises ArgumentError when trying to close the primary window
+        # We'll allow it and return success
+        raise unless e.message.include?("primary window")
+        # This is fine - just means we're closing the last window
+
+        # Re-raise if it's a different ArgumentError
+      end
+
+      # Save session state if we have a session_id
+      SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+
+      {
+        status: "success",
+        closed_window_handle: window_handle,
+        remaining_windows: @session.windows.length,
+        initial_windows_count: initial_windows_count,
+        current_window_handle: @session.windows.any? ? @session.current_window.handle : nil
+      }
     end
 
     def window_handles

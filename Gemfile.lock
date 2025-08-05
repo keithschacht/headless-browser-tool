@@ -5,6 +5,7 @@ PATH
       capybara
       fast-mcp-annotations (~> 1.5)
       json
+      nokogiri
       ostruct
       puma
       rackup

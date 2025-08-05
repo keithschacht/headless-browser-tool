@@ -14,15 +14,20 @@ module HeadlessBrowserTool
 
       def execute(window_handle:)
         initial_windows = browser.windows
-        current_window = browser.current_window
-        browser.close_window(window_handle)
+        current_window_handle = browser.current_window.handle
+
+        # Close the window and get the result
+        result = browser.close_window(window_handle)
+
+        # If error occurred, return the error status
+        return result if result[:status] == "error"
 
         {
           closed_window: window_handle,
-          was_current: window_handle == current_window,
-          previous_windows: initial_windows,
-          remaining_windows: browser.windows,
-          current_window: browser.current_window,
+          was_current: window_handle == current_window_handle,
+          previous_windows: initial_windows.map(&:handle),
+          remaining_windows: browser.windows.map(&:handle),
+          current_window: browser.windows.any? ? browser.current_window.handle : nil,
           status: "closed"
         }
       end

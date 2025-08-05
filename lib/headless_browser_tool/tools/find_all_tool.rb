@@ -15,6 +15,9 @@ module HeadlessBrowserTool
       def execute(selector:)
         elements = browser.find_all(selector)
 
+        # Handle nil case - return empty array structure
+        return { selector: selector, count: 0, elements: [] } if elements.nil?
+
         {
           selector: selector,
           count: elements.size,

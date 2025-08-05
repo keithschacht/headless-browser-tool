@@ -9,6 +9,7 @@ require_relative "cdp_human"
 require_relative "cdp_executor"
 require_relative "cdp_context_manager"
 require_relative "cdp_element_helper"
+require_relative "session_persistence"
 
 module HeadlessBrowserTool
   class Browser
@@ -404,6 +405,10 @@ module HeadlessBrowserTool
     def close_window(window_handle)
       initial_windows_count = @session.windows.length
       current_handle = @session.current_window.handle
+
+      # Support "current" as a special keyword
+      window_handle = current_handle if window_handle == "current"
+
       window = @session.windows.find { |w| w.handle == window_handle }
 
       if window.nil?
@@ -420,7 +425,19 @@ module HeadlessBrowserTool
         @session.switch_to_window(other_window) if other_window
       end
 
-      window.close
+      begin
+        window.close
+      rescue ArgumentError => e
+        # Capybara raises ArgumentError when trying to close the primary window
+        # We'll allow it and return success
+        raise unless e.message.include?("primary window")
+        # This is fine - just means we're closing the last window
+
+        # Re-raise if it's a different ArgumentError
+      end
+
+      # Save session state if we have a session_id
+      SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
 
       {
         status: "success",

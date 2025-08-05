@@ -95,6 +95,7 @@ module HeadlessBrowserTool
 
     def extract_storage(session, storage_type)
       return {} if BLANK_URLS.include?(session.current_url)
+      return {} if session.current_url.start_with?("data:")
 
       session.evaluate_script(<<~JS)
         (() => {
@@ -135,6 +136,7 @@ module HeadlessBrowserTool
 
     def restore_storage(session, storage_type, storage_data)
       return if storage_data.nil? || storage_data.empty? || BLANK_URLS.include?(session.current_url)
+      return if session.current_url.start_with?("data:")
 
       storage_data.each do |key, value|
         session.execute_script("#{storage_type}.setItem(#{key.to_json}, #{value.to_json})")

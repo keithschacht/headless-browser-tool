@@ -19,7 +19,7 @@ module HeadlessBrowserTool
 
       def execute(query:, case_sensitive: false, regex: false, context_lines: 2, show_line_numbers: true)
         # Get page source
-        source = browser.html
+        source = browser.get_page_source
         lines = source.split("\n")
 
         # Build search pattern
