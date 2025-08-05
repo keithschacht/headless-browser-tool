@@ -327,6 +327,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | `find_all` | Find all matching elements | `selector` (required) | `{elements: [{selector, tag_name, text, visible, attributes}]}` |
 | `find_elements_containing_text` | Find elements with text | `text` (required), `exact_match`, `case_sensitive`, `visible_only` | `{elements: [{selector, xpath, tag, text, clickable}]}` |
 | `get_text` | Get element text | `selector` (required) | Text content string |
+| `get_page_as_markdown` | Convert page/element to markdown | `selector` (optional) | `{markdown, status}` |
 | `get_attribute` | Get element attribute | `selector`, `attribute` (required) | Attribute value |
 | `get_value` | Get input value | `selector` (required) | Input value |
 | `is_visible` | Check element visibility | `selector` (required) | Boolean |
@@ -354,7 +355,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | `get_current_path` | Get current path | Path without domain |
 | `get_page_title` | Get page title | Title string |
 | `get_page_source` | Get HTML source | Full HTML |
-| `get_page_context` | Get page analysis | Structured page data |
+| `get_page_context` | Analyze page structure and available actions | Navigation, forms, buttons, and page layout metadata |
 
 #### Search Tools
 
@@ -376,6 +377,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 |------|-------------|------------|-------------|
 | `screenshot` | Take screenshot | `filename`, `highlight_selectors`, `annotate`, `full_page` | `{file_path, filename, file_size, timestamp, url, title}` |
 | `save_page` | Save HTML to file | `file_path` (required) | `{file_path, file_size, timestamp, url, title, status}` |
+| `visual_diff` | Summarize what changed on the page since last call to this tool | |
 
 #### Window Management Tools
 
@@ -393,12 +395,6 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | Tool | Description | Returns |
 |------|-------------|---------|
 | `get_session_info` | Get session information | Session details |
-
-#### Smart Tools (experimental)
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `visual_diff` | Summarize what changed on the page since last call to this tool | |
 
 ### Tool Response Structure
 

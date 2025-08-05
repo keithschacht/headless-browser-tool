@@ -4,6 +4,7 @@ require "capybara"
 require "capybara/dsl"
 require "selenium-webdriver"
 require "reverse_markdown"
+require "uri"
 require_relative "logger"
 require_relative "human_mode"
 require_relative "cdp_human"
@@ -194,16 +195,95 @@ module HeadlessBrowserTool
       end
     end
 
-    def get_element_content(selector)
-      cdp_element_action(selector, :get_element_content) do
-        element = @session.find(selector)
-        inner_html = element.native.attribute("innerHTML")
+    def get_page_as_markdown(selector = nil)
+      # Define custom converter for cleaning Amazon tracking URLs
+      clean_amazon_links = Class.new(ReverseMarkdown::Converters::Base) do
+        def convert(node, state = {})
+          href = node["href"]
+          return "" if href.nil?
+
+          # Check if this is an Amazon tracking URL
+          # Extract the actual Amazon URL from the tracking wrapper
+          if (href.include?("aax-us-iad.amazon.com") || href.include?("aax-us-east.amazon.com")) && (match = href.match(%r{/https://www\.amazon\.com([^"'\s]+)}))
+            href = "https://www.amazon.com#{match[1]}"
+          end
+
+          # Further simplify Amazon product URLs
+          if href.include?("amazon.com")
+            # Extract ASIN from various Amazon URL formats
+            match = href.match(%r{/(?:dp|gp/product|gp/aw/d)/([A-Z0-9]{10})})
+            if match
+              href = "https://www.amazon.com/dp/#{match[1]}"
+            else
+              # For non-product pages, just keep the path
+              uri = begin
+                URI.parse(href)
+              rescue StandardError
+                nil
+              end
+              if uri
+                # Remove ref, tag, and other tracking params
+                clean_path = uri.path.gsub(%r{/ref=[^/]*}, "")
+                href = "https://www.amazon.com#{clean_path}"
+              end
+            end
+          end
+
+          # Handle the link content
+          title = extract_title(node)
+          content = treat_children(node, state)
+
+          # Return markdown link
+          if href.start_with?("http://", "https://", "/")
+            link = "[#{content}](#{href}#{title})"
+            link = "#{link} " if node.has_attribute?("data-link-inline")
+            link
+          else
+            content
+          end
+        end
+
+        private
+
+        def extract_title(node)
+          title = node["title"]
+          return unless title
+
+          title.empty? ? "" : %( "#{title}")
+        end
+      end.new
+
+      # Register custom converters
+      original_img_converter = ReverseMarkdown::Converters.lookup(:img)
+      original_a_converter = ReverseMarkdown::Converters.lookup(:a)
+
+      begin
+        # Register our custom converters
+        ReverseMarkdown::Converters.register :img, ReverseMarkdown::Converters::Ignore.new
+        ReverseMarkdown::Converters.register :a, clean_amazon_links
+
+        # Get the HTML content
+        if selector
+          element = @session.find(selector)
+          inner_html = element.native.attribute("innerHTML")
+        else
+          # Get entire page body
+          inner_html = @session.evaluate_script("document.body.innerHTML")
+        end
+
+        # Convert to markdown
         md = ReverseMarkdown.convert(inner_html.gsub("\n", ""), unknown_tags: :bypass)
-        {
-          selector: selector,
+
+        result = {
           markdown: md,
           status: "success"
         }
+        result[:selector] = selector if selector
+        result
+      ensure
+        # Restore original converters
+        ReverseMarkdown::Converters.register :img, original_img_converter
+        ReverseMarkdown::Converters.register :a, original_a_converter
       end
     end
 

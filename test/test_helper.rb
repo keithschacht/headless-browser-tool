@@ -35,7 +35,10 @@ class QuietTestLogger < Logger
   SUPPRESSED_MESSAGES = [
     /Error saving session: invalid session id/,
     /Creating browser instance on first use/,
-    /Browser InvalidSessionIdError.*creating new instance and retrying/
+    /Browser InvalidSessionIdError.*creating new instance and retrying/,
+    /\[CDP\]/, # Suppress all CDP messages
+    /CDP human mode enabled/,
+    /Human mode \(without CDP\) enabled/
   ].freeze
 
   def add(severity, message = nil, progname = nil, &)

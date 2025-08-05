@@ -6,7 +6,8 @@ module HeadlessBrowserTool
   module Tools
     class GetPageContextTool < BaseTool
       tool_name "get_page_context"
-      description "Get a structured understanding of the current page"
+      description "Analyze page structure and available actions. Returns metadata about navigation, forms, buttons, and page layout. " \
+                  "Use this to understand what you can DO on a page (not for reading content)."
 
       def execute
         context_script = <<~JS
