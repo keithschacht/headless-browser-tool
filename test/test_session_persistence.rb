@@ -229,7 +229,10 @@ class TestSessionPersistence < TestBase
                                     javascript_code: "({ input: document.getElementById('test-input').value, url: window.location.href })"
                                   }, session_id)
 
-      assert_equal "server-modified", state_result["input"]
+      assert_kind_of Hash, state_result
+      assert_equal "success", state_result["status"]
+      assert_equal "Hash", state_result["type"]
+      assert_equal "server-modified", state_result["result"]["input"]
 
       # Session file should exist (if session persistence is enabled)
       File.join(@sessions_dir, "#{session_id}.json")

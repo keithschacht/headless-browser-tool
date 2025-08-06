@@ -182,9 +182,12 @@ class TestIntegrationReal < TestBase
 
     eval_result = parse_tool_result(result)
 
-    # evaluate_script returns the raw JavaScript result, not a status object
-    assert_equal "integration", eval_result["test"]
-    assert eval_result["timestamp"]
+    # evaluate_script returns a structured response with result and type
+    assert_kind_of Hash, eval_result
+    assert_equal "success", eval_result["status"]
+    assert_equal "Hash", eval_result["type"]
+    assert_equal "integration", eval_result["result"]["test"]
+    assert eval_result["result"]["timestamp"]
   end
 
   def test_element_interactions

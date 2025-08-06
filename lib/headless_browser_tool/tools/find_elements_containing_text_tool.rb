@@ -18,6 +18,16 @@ module HeadlessBrowserTool
         script = build_search_script(text, case_sensitive, visible_only)
         elements_data = browser.evaluate_script(script)
 
+        # Check if JavaScript returned an error object
+        if elements_data.is_a?(Hash) && elements_data["error"]
+          return {
+            error: "JavaScript error during search: #{elements_data["error"]}",
+            query: text,
+            total_found: 0,
+            elements: []
+          }
+        end
+
         # Ensure we have an array to work with
         elements_data = [] if elements_data.nil?
         elements_data = [elements_data] unless elements_data.is_a?(Array)
@@ -26,6 +36,9 @@ module HeadlessBrowserTool
         results = elements_data.map do |element|
           # Skip if element is not a hash
           next unless element.is_a?(Hash)
+
+          # Skip if this is an error object
+          next if element["error"]
 
           # Safely extract values with defaults
           {
@@ -45,6 +58,20 @@ module HeadlessBrowserTool
           query: text,
           total_found: results.size,
           elements: results
+        }
+      rescue Selenium::WebDriver::Error::JavascriptError => e
+        {
+          error: "JavaScript error: #{e.message}",
+          query: text,
+          total_found: 0,
+          elements: []
+        }
+      rescue StandardError => e
+        {
+          error: "Failed to search for elements: #{e.message}",
+          query: text,
+          total_found: 0,
+          elements: []
         }
       end
 

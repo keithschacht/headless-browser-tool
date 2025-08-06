@@ -15,8 +15,19 @@ module HeadlessBrowserTool
       def execute(javascript_code:)
         result = browser.evaluate_script(javascript_code)
         {
+          status: "success",
           result: result,
           type: result.class.name
+        }
+      rescue Selenium::WebDriver::Error::JavascriptError => e
+        {
+          status: "error",
+          error: "JavaScript error: #{e.message}"
+        }
+      rescue StandardError => e
+        {
+          status: "error",
+          error: "Failed to evaluate script: #{e.message}"
         }
       end
     end

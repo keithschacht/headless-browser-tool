@@ -232,8 +232,11 @@ class TestEdgeCasesAndErrorsReal < TestBase
 
     eval_result = parse_tool_result(result)
 
-    # The evaluate_script tool returns the raw result directly
-    assert_kind_of Array, eval_result
+    # The evaluate_script tool returns a structured response
+    assert_kind_of Hash, eval_result
+    assert_equal "success", eval_result["status"]
+    assert_equal "Array", eval_result["type"]
+    assert_kind_of Array, eval_result["result"]
   end
 
   def test_special_characters_and_encoding

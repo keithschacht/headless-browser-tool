@@ -150,9 +150,12 @@ class TestComplexTools < TestBase
                                           javascript_code: "({ message: document.getElementById('result').textContent, timestamp: Date.now() })"
                                         })
 
-    # evaluate_script returns the result directly, not wrapped in a status object
-    assert_equal "Executed!", evaluate_result["message"]
-    assert evaluate_result["timestamp"]
+    # evaluate_script returns a structured response with result and type
+    assert_kind_of Hash, evaluate_result
+    assert_equal "success", evaluate_result["status"]
+    assert_equal "Hash", evaluate_result["type"]
+    assert_equal "Executed!", evaluate_result["result"]["message"]
+    assert evaluate_result["result"]["timestamp"]
   end
 
   def test_screenshot_tool
@@ -238,9 +241,12 @@ class TestComplexTools < TestBase
                                  JS
                                })
 
-    # evaluate_script returns the result directly
-    assert_equal "completed", result["status"]
-    assert_equal "Async complete", result["result"]
+    # evaluate_script returns a structured response with result and type
+    assert_kind_of Hash, result
+    assert_equal "success", result["status"]
+    assert_equal "Hash", result["type"]
+    assert_equal "completed", result["result"]["status"]
+    assert_equal "Async complete", result["result"]["result"]
   end
 
   def test_screenshot_with_full_page
@@ -294,11 +300,14 @@ class TestComplexTools < TestBase
                                  JS
                                })
 
-    assert_equal "testuser", values["username"]
-    assert_equal "testpass123", values["password"]
-    assert_equal "Admin", values["role"]
-    assert values["remember"]
-    assert_includes values["bio"], "Line 2"
+    assert_kind_of Hash, values
+    assert_equal "success", values["status"]
+    assert_equal "Hash", values["type"]
+    assert_equal "testuser", values["result"]["username"]
+    assert_equal "testpass123", values["result"]["password"]
+    assert_equal "Admin", values["result"]["role"]
+    assert values["result"]["remember"]
+    assert_includes values["result"]["bio"], "Line 2"
   end
 
   def test_element_visibility_and_waiting
