@@ -264,8 +264,13 @@ module HeadlessBrowserTool
 
         # Get the HTML content
         if selector
-          element = @session.find(selector)
-          inner_html = element.native.attribute("innerHTML")
+          begin
+            element = @session.find(selector)
+            inner_html = element.native.attribute("innerHTML")
+          rescue Capybara::ElementNotFound
+            # If selector not found, return empty string
+            return ""
+          end
         else
           # Get entire page body
           inner_html = @session.evaluate_script("document.body.innerHTML")
@@ -273,13 +278,9 @@ module HeadlessBrowserTool
 
         # Convert to markdown
         md = ReverseMarkdown.convert(inner_html.gsub("\n", ""), unknown_tags: :bypass)
-
-        result = {
-          markdown: md,
-          status: "success"
-        }
-        result[:selector] = selector if selector
-        result
+        
+        # Return just the markdown string
+        md
       ensure
         # Restore original converters
         ReverseMarkdown::Converters.register :img, original_img_converter

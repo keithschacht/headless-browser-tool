@@ -102,18 +102,13 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#test-content" }
                               })
 
-    parsed_result = parse_tool_result(result)
+    markdown = parse_tool_result(result)
 
-    # Debug output
-    puts "Full result: #{parsed_result.inspect}" if parsed_result.is_a?(Hash) && !parsed_result["status"]
-
-    assert_equal "success", parsed_result["status"]
-    assert_equal "#test-content", parsed_result["selector"]
-    assert_includes parsed_result["markdown"], "# Hello World"
-    assert_includes parsed_result["markdown"], "This is a **test** paragraph."
+    assert_includes markdown, "# Hello World"
+    assert_includes markdown, "This is a **test** paragraph."
     # Should not include header/footer
-    refute_includes parsed_result["markdown"], "Header Content"
-    refute_includes parsed_result["markdown"], "Footer Content"
+    refute_includes markdown, "Header Content"
+    refute_includes markdown, "Footer Content"
   end
 
   def test_get_page_as_markdown_without_selector
@@ -142,15 +137,13 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: {}
                               })
 
-    parsed_result = parse_tool_result(result)
+    markdown = parse_tool_result(result)
 
-    assert_equal "success", parsed_result["status"]
-    assert_nil parsed_result["selector"]
     # Should include all content
-    assert_includes parsed_result["markdown"], "Header Content"
-    assert_includes parsed_result["markdown"], "# Page Title"
-    assert_includes parsed_result["markdown"], "Main content here."
-    assert_includes parsed_result["markdown"], "Footer Content"
+    assert_includes markdown, "Header Content"
+    assert_includes markdown, "# Page Title"
+    assert_includes markdown, "Main content here."
+    assert_includes markdown, "Footer Content"
   end
 
   def test_get_page_as_markdown_strips_images
@@ -180,17 +173,16 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#content" }
                               })
 
-    parsed_result = parse_tool_result(result)
+    markdown = parse_tool_result(result)
 
-    assert_equal "success", parsed_result["status"]
-    assert_includes parsed_result["markdown"], "Before image"
-    assert_includes parsed_result["markdown"], "After image"
-    assert_includes parsed_result["markdown"], "End"
+    assert_includes markdown, "Before image"
+    assert_includes markdown, "After image"
+    assert_includes markdown, "End"
     # Images should be completely removed
-    refute_includes parsed_result["markdown"], "![Test Image]"
-    refute_includes parsed_result["markdown"], "![Another Image]"
-    refute_includes parsed_result["markdown"], "test.jpg"
-    refute_includes parsed_result["markdown"], "another.png"
+    refute_includes markdown, "![Test Image]"
+    refute_includes markdown, "![Another Image]"
+    refute_includes markdown, "test.jpg"
+    refute_includes markdown, "another.png"
   end
 
   def test_get_page_as_markdown_with_amazon_tracking_urls
@@ -218,18 +210,17 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#content" }
                               })
 
-    parsed_result = parse_tool_result(result)
+    markdown = parse_tool_result(result)
 
-    assert_equal "success", parsed_result["status"]
     # Should have cleaned Amazon URLs
-    assert_includes parsed_result["markdown"], "[Product Link](https://www.amazon.com/dp/B08N5WRWNW)"
-    assert_includes parsed_result["markdown"], "[Another Product](https://www.amazon.com/dp/B08N5WRWNW)"
-    assert_includes parsed_result["markdown"], "[Search Link](https://www.amazon.com/s"
+    assert_includes markdown, "[Product Link](https://www.amazon.com/dp/B08N5WRWNW)"
+    assert_includes markdown, "[Another Product](https://www.amazon.com/dp/B08N5WRWNW)"
+    assert_includes markdown, "[Search Link](https://www.amazon.com/s"
     # Should not have tracking URLs
-    refute_includes parsed_result["markdown"], "aax-us-iad.amazon.com"
-    refute_includes parsed_result["markdown"], "aax-us-east.amazon.com"
-    refute_includes parsed_result["markdown"], "ref=sr_1_1"
-    refute_includes parsed_result["markdown"], "ref=nb_sb_noss"
+    refute_includes markdown, "aax-us-iad.amazon.com"
+    refute_includes markdown, "aax-us-east.amazon.com"
+    refute_includes markdown, "ref=sr_1_1"
+    refute_includes markdown, "ref=nb_sb_noss"
   end
 
   def test_get_page_as_markdown_with_nested_lists
@@ -264,15 +255,14 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#list-content" }
                               })
 
-    parsed_result = parse_tool_result(result)
+    markdown = parse_tool_result(result)
 
-    assert_equal "success", parsed_result["status"]
     # ReverseMarkdown uses dashes for lists, not asterisks
-    assert_includes parsed_result["markdown"], "- Item 1"
-    assert_includes parsed_result["markdown"], "- Item 2"
-    assert_includes parsed_result["markdown"], "  - Nested 2.1"
-    assert_includes parsed_result["markdown"], "  - Nested 2.2"
-    assert_includes parsed_result["markdown"], "- Item 3"
+    assert_includes markdown, "- Item 1"
+    assert_includes markdown, "- Item 2"
+    assert_includes markdown, "  - Nested 2.1"
+    assert_includes markdown, "  - Nested 2.2"
+    assert_includes markdown, "- Item 3"
   end
 
   def test_get_page_as_markdown_with_table
@@ -315,13 +305,12 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#table-content" }
                               })
 
-    parsed_result = parse_tool_result(result)
+    markdown = parse_tool_result(result)
 
-    assert_equal "success", parsed_result["status"]
     # ReverseMarkdown converts tables to pipe-separated format
-    assert_includes parsed_result["markdown"], "| Name | Age |"
-    assert_includes parsed_result["markdown"], "| John | 25 |"
-    assert_includes parsed_result["markdown"], "| Jane | 30 |"
+    assert_includes markdown, "| Name | Age |"
+    assert_includes markdown, "| John | 25 |"
+    assert_includes markdown, "| Jane | 30 |"
   end
 
   def test_get_page_as_markdown_element_not_found
@@ -337,9 +326,40 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#non-existent" }
                               })
 
-    parsed_result = parse_tool_result(result)
+    # Should return empty string, not an error
+    refute result["error"]
+    markdown = parse_tool_result(result)
+    assert_equal "", markdown.strip
+  end
 
-    # Should get an error
-    assert parsed_result["error"]
+  def test_get_page_as_markdown_with_non_existent_selector
+    # Navigate to a page with content
+    html_content = <<~HTML
+      <html>
+        <body>
+          <div id="main">Main Content</div>
+          <div class="content">Other Content</div>
+        </body>
+      </html>
+    HTML
+
+    make_mcp_request("tools/call", {
+                       name: "visit",
+                       arguments: { url: "data:text/html,#{html_content}" }
+                     })
+
+    # Try to get content of non-existent selector (like the .sc-buy-box)
+    result = make_mcp_request("tools/call", {
+                                name: "get_page_as_markdown",
+                                arguments: { selector: ".sc-buy-box" }
+                              })
+
+    # The tool should handle non-existent selectors gracefully
+    # It should return empty content rather than throwing an exception
+    refute result["error"], "Tool should not return an error for non-existent selector"
+    
+    # Should return empty markdown content
+    markdown = parse_tool_result(result)
+    assert_equal "", markdown.strip
   end
 end
