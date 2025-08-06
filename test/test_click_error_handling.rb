@@ -1,314 +1,234 @@
 # frozen_string_literal: true
 
-require_relative "test_base"
-require "net/http"
-require "json"
+require "test_helper"
 
-class TestClickErrorHandling < TestBase
+class TestClickErrorHandling < Minitest::Test
+  # Test error handling in click tools by mocking just the browser
+  # while keeping the actual tool error handling logic intact
+
   def setup
-    super # Call TestBase setup first
-
-    # Allocate port
-    allocate_test_port
-    @base_url = "http://localhost:#{@port}"
-    @session_id = test_session_id
-
-    # Start server in a separate process with isolated directories
-    @server_pid = fork do
-      # Use isolated directories
-      ENV["HBT_SESSIONS_DIR"] = @sessions_dir
-      ENV["HBT_SCREENSHOTS_DIR"] = @screenshots_dir
-      ENV["HBT_LOGS_DIR"] = @logs_dir
-
-      $stdout.reopen(File::NULL, "w")
-      $stderr.reopen(File::NULL, "w")
-
-      HeadlessBrowserTool::Server.start_server(
-        port: @port,
-        single_session: false,
-        headless: true
-      )
-    end
-
-    track_child_process(@server_pid)
-
-    # Wait for server to be ready
-    TestServerHelper.wait_for_server("localhost", @port, path: "/mcp")
+    # Set server to single session mode to avoid session ID requirement
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+    @mock_browser = MockBrowserForErrors.new
   end
 
   def teardown
-    TestServerHelper.stop_server_process(@server_pid) if @server_pid
-    super # Call TestBase teardown
-  rescue Errno::ESRCH, Errno::ECHILD
-    # Process already dead
+    # Reset server state
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
   end
 
   def test_click_element_not_found
-    # Visit a page without the element we're trying to click
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,<html><body><h1>Test Page</h1></body></html>"
-                                }
-                              })
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
 
-    assert_mcp_success(result)
+    # Mock the browser to return empty array for .all() check
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_return_empty = true
 
-    # Try to click a non-existent element
-    result = make_mcp_request("tools/call", {
-                                name: "click",
-                                arguments: {
-                                  selector: "#non-existent-element"
-                                }
-                              })
+    result = tool.execute(selector: "#non-existent")
 
-    click_result = parse_tool_result(result)
-
-    # Debug output
-    puts "Click result: #{click_result.inspect}" if ENV["DEBUG_TESTS"]
-
-    # Should return an error message, not throw an exception
-    assert_kind_of Hash, click_result
-    assert click_result["error"], "Should have an error field (got: #{click_result.inspect})"
-    assert_match(/Unable to find|not found/i, click_result["error"], "Error should indicate element not found")
-    assert_equal "error", click_result["status"], "Status should be 'error'"
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/Unable to find element/i, result[:error])
+    assert_equal "#non-existent", result[:selector]
   end
 
   def test_click_ambiguous_selector
-    # Visit a page with multiple matching elements
-    html = <<-HTML
-      <html>
-        <body>
-          <div class="duplicate">First</div>
-          <div class="duplicate">Second</div>
-          <div class="duplicate">Third</div>
-        </body>
-      </html>
-    HTML
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
 
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,#{html.gsub(/\s+/, " ").strip}"
-                                }
-                              })
+    # Mock the browser to return multiple elements for .all() check
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_return_multiple = true
 
-    assert_mcp_success(result)
+    result = tool.execute(selector: ".duplicate")
 
-    # Try to click with ambiguous selector
-    result = make_mcp_request("tools/call", {
-                                name: "click",
-                                arguments: {
-                                  selector: ".duplicate"
-                                }
-                              })
-
-    click_result = parse_tool_result(result)
-
-    # Should return an error message about ambiguous selector
-    assert_kind_of Hash, click_result
-    assert click_result["error"], "Should have an error field"
-    assert_match(/Ambiguous|multiple|found \d+ elements/i, click_result["error"], "Error should indicate ambiguous match")
-    assert_equal "error", click_result["status"], "Status should be 'error'"
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/Ambiguous selector.*found 3 elements/i, result[:error])
+    assert_equal ".duplicate", result[:selector]
   end
 
   def test_click_button_not_found
-    # Visit a page without the button we're trying to click
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,<html><body><h1>No Buttons Here</h1></body></html>"
-                                }
-                              })
+    tool = HeadlessBrowserTool::Tools::ClickButtonTool.new
 
-    assert_mcp_success(result)
+    # Mock browser to raise ElementNotFound
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_raise = Capybara::ElementNotFound.new("Unable to find button \"Submit\"")
 
-    # Try to click a non-existent button
-    result = make_mcp_request("tools/call", {
-                                name: "click_button",
-                                arguments: {
-                                  button_text_or_selector: "Submit"
-                                }
-                              })
+    result = tool.execute(button_text_or_selector: "Submit")
 
-    button_result = parse_tool_result(result)
-
-    # Should return an error message, not throw an exception
-    assert_kind_of Hash, button_result
-    assert button_result["error"], "Should have an error field"
-    assert_match(/Unable to find|not found|No button/i, button_result["error"], "Error should indicate button not found")
-    assert_equal "error", button_result["status"], "Status should be 'error'"
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/Unable to find button/i, result[:error])
+    assert_equal "Submit", result[:button]
   end
 
-  def test_click_button_with_invalid_selector
-    # Visit a page with content
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,<html><body><button>Click Me</button></body></html>"
-                                }
-                              })
+  def test_click_disabled_element_not_interactable
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
 
-    assert_mcp_success(result)
+    # First return an element for the .all() check, then raise on click
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    mock_element = MockElement.new(tag_name: "button", text: "Disabled", disabled: true)
+    @mock_browser.elements_to_return = [mock_element]
+    @mock_browser.should_raise_on_click = Selenium::WebDriver::Error::ElementNotInteractableError.new("element not interactable")
 
-    # Try to click with a CSS selector that doesn't match any button
-    result = make_mcp_request("tools/call", {
-                                name: "click_button",
-                                arguments: {
-                                  button_text_or_selector: "#non-existent-button"
-                                }
-                              })
+    result = tool.execute(selector: "#disabled-btn")
 
-    button_result = parse_tool_result(result)
-
-    # Should return an error message, not throw an exception
-    assert_kind_of Hash, button_result
-    assert button_result["error"], "Should have an error field"
-    assert_match(/Unable to find|not found/i, button_result["error"], "Error should indicate element not found")
-    assert_equal "error", button_result["status"], "Status should be 'error'"
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/not interactable.*may be hidden or disabled/i, result[:error])
+    assert_equal "#disabled-btn", result[:selector]
   end
 
-  def test_click_disabled_element
-    # Visit a page with a disabled button
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,<html><body><button id='disabled-btn' disabled>Can't Click</button></body></html>"
-                                }
-                              })
+  def test_click_invalid_selector
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
 
-    assert_mcp_success(result)
+    # Mock browser to raise InvalidSelectorError
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_raise = Selenium::WebDriver::Error::InvalidSelectorError.new("invalid selector")
 
-    # Try to click the disabled button
-    result = make_mcp_request("tools/call", {
-                                name: "click",
-                                arguments: {
-                                  selector: "#disabled-btn"
-                                }
-                              })
+    result = tool.execute(selector: "##invalid[[[")
 
-    click_result = parse_tool_result(result)
-
-    # Debug output
-    puts "Disabled click result: #{click_result.inspect}" if ENV["DEBUG_TESTS"]
-
-    # Should return an error or handle gracefully
-    assert_kind_of Hash, click_result
-    if click_result["error"]
-      assert_match(/disabled|cannot click|not interactable/i, click_result["error"], "Error should indicate element is disabled")
-      assert_equal "error", click_result["status"], "Status should be 'error'"
-    else
-      # Or it might succeed but indicate the element was disabled
-      assert click_result["element"], "Should have element info (got: #{click_result.inspect})"
-      assert click_result["element"]["disabled"] || click_result["warning"], "Should indicate element was disabled"
-    end
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/Invalid CSS selector/i, result[:error])
+    assert_equal "##invalid[[[", result[:selector]
   end
 
-  def test_click_invisible_element
-    # Visit a page with an invisible element
-    html = <<-HTML
-      <html>
-        <body>
-          <button id="hidden-btn" style="display: none;">Hidden Button</button>
-          <button id="invisible-btn" style="visibility: hidden;">Invisible Button</button>
-        </body>
-      </html>
-    HTML
+  def test_click_generic_error
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
 
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,#{html.gsub(/\s+/, " ").strip}"
-                                }
-                              })
+    # Mock browser to raise a generic error
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_raise = StandardError.new("Something went wrong")
 
-    assert_mcp_success(result)
+    result = tool.execute(selector: "#some-element")
 
-    # Try to click the hidden button
-    result = make_mcp_request("tools/call", {
-                                name: "click",
-                                arguments: {
-                                  selector: "#hidden-btn"
-                                }
-                              })
-
-    click_result = parse_tool_result(result)
-
-    # Should return an error about element not being visible/interactable
-    assert_kind_of Hash, click_result
-    assert click_result["error"], "Should have an error field"
-    assert_match(/not visible|not interactable|Unable to find/i, click_result["error"], "Error should indicate visibility issue")
-    assert_equal "error", click_result["status"], "Status should be 'error'"
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/Failed to click element.*Something went wrong/i, result[:error])
+    assert_equal "#some-element", result[:selector]
   end
 
-  def test_click_with_malformed_selector
-    # Visit any page
-    result = make_mcp_request("tools/call", {
-                                name: "visit",
-                                arguments: {
-                                  url: "data:text/html,<html><body><h1>Test</h1></body></html>"
-                                }
-                              })
+  def test_click_button_not_interactable
+    tool = HeadlessBrowserTool::Tools::ClickButtonTool.new
 
-    assert_mcp_success(result)
+    # Mock browser to raise ElementNotInteractableError
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_raise = Selenium::WebDriver::Error::ElementNotInteractableError.new("element not interactable")
 
-    # Try to click with a malformed CSS selector
-    result = make_mcp_request("tools/call", {
-                                name: "click",
-                                arguments: {
-                                  selector: "##invalid..selector[["
-                                }
-                              })
+    result = tool.execute(button_text_or_selector: "#hidden-button")
 
-    click_result = parse_tool_result(result)
-
-    # Should return an error about invalid selector
-    assert_kind_of Hash, click_result
-    assert click_result["error"], "Should have an error field"
-    assert_match(/invalid.*selector|syntax|malformed/i, click_result["error"], "Error should indicate selector issue")
-    assert_equal "error", click_result["status"], "Status should be 'error'"
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/not interactable.*may be hidden or disabled/i, result[:error])
+    assert_equal "#hidden-button", result[:button]
   end
 
-  private
+  def test_click_button_invalid_selector
+    tool = HeadlessBrowserTool::Tools::ClickButtonTool.new
 
-  def make_mcp_request(method, params = {})
-    uri = URI("#{@base_url}/mcp")
-    request = Net::HTTP::Post.new(uri)
-    request["Content-Type"] = "application/json"
-    request["X-Session-ID"] = @session_id
-    request.body = {
-      jsonrpc: "2.0",
-      method: method,
-      params: params,
-      id: rand(10_000)
-    }.to_json
+    # Mock browser to raise InvalidSelectorError
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_raise = Selenium::WebDriver::Error::InvalidSelectorError.new("invalid selector")
 
-    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-      http.request(request)
+    result = tool.execute(button_text_or_selector: "###bad")
+
+    assert_kind_of Hash, result
+    assert_equal "error", result[:status]
+    assert_match(/Invalid selector/i, result[:error])
+    assert_equal "###bad", result[:button]
+  end
+end
+
+# Mock browser that implements just enough to test error handling
+class MockBrowserForErrors
+  attr_accessor :should_raise, :should_raise_on_click, :should_raise_on_find_button, :elements_to_return, :should_return_empty,
+                :should_return_multiple
+  attr_reader :current_url
+
+  def initialize
+    @current_url = "http://example.com"
+    @elements_to_return = []
+  end
+
+  def session
+    self # Return self as a mock session
+  end
+
+  def title
+    "Test Page"
+  end
+
+  def all(_selector, **_options)
+    raise should_raise if should_raise
+
+    return [] if should_return_empty
+
+    if should_return_multiple
+      # Return 3 mock elements for ambiguous selector test
+      return [
+        MockElement.new(text: "First"),
+        MockElement.new(text: "Second"),
+        MockElement.new(text: "Third")
+      ]
     end
 
-    JSON.parse(response.body)
+    # Return configured elements or default single element
+    elements_to_return.empty? ? [MockElement.new] : elements_to_return
   end
 
-  def assert_mcp_success(response)
-    assert_nil response["error"], "MCP request should succeed: #{response["error"]&.inspect}"
-    assert response["result"], "MCP response should have result"
+  def find(_selector)
+    raise should_raise if should_raise
+
+    elements_to_return.first || MockElement.new
   end
 
-  def parse_tool_result(response)
-    assert_mcp_success(response)
-    result = response["result"]
+  def find_button(text_or_selector)
+    raise should_raise if should_raise
+    raise should_raise_on_find_button if should_raise_on_find_button
 
-    # If result has content field, parse the JSON from it
-    if result&.dig("content").is_a?(Array)
-      content = result["content"].first
-      if content && content["type"] == "text" && content["text"]
-        JSON.parse(content["text"])
-      else
-        result
-      end
-    else
-      result
-    end
+    MockElement.new(tag_name: "button", text: text_or_selector)
+  end
+
+  def click(_selector)
+    raise should_raise_on_click if should_raise_on_click
+
+    true
+  end
+
+  def click_button(_text_or_selector)
+    raise should_raise if should_raise
+    raise should_raise_on_find_button if should_raise_on_find_button
+    raise should_raise_on_click if should_raise_on_click
+
+    true
+  end
+end
+
+# Minimal mock element
+class MockElement
+  attr_reader :tag_name, :text
+
+  def initialize(attrs = {})
+    @tag_name = attrs[:tag_name] || "div"
+    @text = attrs[:text] || "Mock Element"
+    @attrs = attrs
+  end
+
+  def [](attr)
+    @attrs[attr]
+  end
+
+  def disabled?
+    @attrs[:disabled] || false
+  end
+
+  def size
+    1
+  end
+
+  def strip
+    self
   end
 end

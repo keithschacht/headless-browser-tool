@@ -5,6 +5,7 @@ require_relative "tools/visit_tool"
 require_relative "tools/refresh_tool"
 require_relative "tools/go_back_tool"
 require_relative "tools/go_forward_tool"
+require_relative "tools/scroll_to_tool"
 require_relative "tools/click_tool"
 require_relative "tools/right_click_tool"
 require_relative "tools/double_click_tool"
@@ -56,6 +57,7 @@ module HeadlessBrowserTool
       RefreshTool,
       GoBackTool,
       GoForwardTool,
+      ScrollToTool,
       ClickTool,
       RightClickTool,
       DoubleClickTool,

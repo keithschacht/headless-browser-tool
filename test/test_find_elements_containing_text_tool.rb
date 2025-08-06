@@ -565,6 +565,7 @@ class TestFindElementsContainingText < TestBase
     assert_empty result[:elements]
 
     # Test with non-array return
+    @browser.singleton_class.remove_method(:evaluate_script)
     @browser.define_singleton_method(:evaluate_script) do |_script|
       "not an array"
     end
@@ -577,6 +578,7 @@ class TestFindElementsContainingText < TestBase
     assert_kind_of Array, result[:elements]
 
     # Test with array containing non-hash elements
+    @browser.singleton_class.remove_method(:evaluate_script)
     @browser.define_singleton_method(:evaluate_script) do |_script|
       ["not a hash", nil, 123, { "tag" => "div", "text" => "valid" }]
     end
@@ -589,6 +591,7 @@ class TestFindElementsContainingText < TestBase
     assert_equal "div", result[:elements].first[:tag]
 
     # Restore original method
+    @browser.singleton_class.remove_method(:evaluate_script)
     @browser.define_singleton_method(:evaluate_script, original_evaluate_script)
   end
 

@@ -1,0 +1,68 @@
+# frozen_string_literal: true
+
+require_relative "base_tool"
+
+module HeadlessBrowserTool
+  module Tools
+    class ScrollToTool < BaseTool
+      tool_name "scroll_to"
+      description "Scroll to an element on the page"
+
+      arguments do
+        required(:selector).filled(:string).description("CSS selector of the element to scroll to")
+      end
+
+      def execute(selector:)
+        element = browser.find(selector)
+
+        initial_scroll_position = browser.evaluate_script("window.pageYOffset")
+
+        browser.execute_script("arguments[0].scrollIntoView({ behavior: 'instant', block: 'start' });", element.native)
+
+        sleep 0.1
+
+        final_scroll_position = browser.evaluate_script("window.pageYOffset")
+        element_rect = browser.evaluate_script("arguments[0].getBoundingClientRect()", element.native)
+
+        {
+          selector: selector,
+          element: {
+            tag_name: element.tag_name,
+            text: element.text.strip[0..100],
+            id: element[:id],
+            class: element[:class]
+          }.compact,
+          scroll: {
+            initial_position: initial_scroll_position,
+            final_position: final_scroll_position,
+            scrolled: initial_scroll_position != final_scroll_position
+          },
+          element_position: {
+            top: element_rect["top"],
+            left: element_rect["left"],
+            in_viewport: element_rect["top"] >= 0 && element_rect["top"] < browser.evaluate_script("window.innerHeight")
+          },
+          status: "scrolled"
+        }
+      rescue Capybara::ElementNotFound
+        {
+          status: "error",
+          error: "Unable to find element with selector: #{selector}",
+          selector: selector
+        }
+      rescue Selenium::WebDriver::Error::InvalidSelectorError
+        {
+          status: "error",
+          error: "Invalid CSS selector: #{selector}",
+          selector: selector
+        }
+      rescue StandardError => e
+        {
+          status: "error",
+          error: "Failed to scroll to element: #{e.message}",
+          selector: selector
+        }
+      end
+    end
+  end
+end

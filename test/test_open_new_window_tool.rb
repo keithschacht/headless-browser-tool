@@ -17,6 +17,7 @@ class TestOpenNewWindowTool < Minitest::Test
 
   def test_tool_registration
     all_tool_names = HeadlessBrowserTool::Tools::ALL_TOOLS.map(&:tool_name)
+
     assert_includes all_tool_names, "open_new_window"
   end
 end

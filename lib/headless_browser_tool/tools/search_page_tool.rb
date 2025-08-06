@@ -95,7 +95,11 @@ module HeadlessBrowserTool
 
       def search_html(pattern)
         # Search in page source for hidden content, attributes, etc.
-        page_source = browser.page.html
+        page_source = if browser.respond_to?(:html)
+                        browser.html
+                      else
+                        browser.session.html
+                      end
         matches = []
 
         # Search in common attributes

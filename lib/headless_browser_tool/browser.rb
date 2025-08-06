@@ -22,14 +22,14 @@ module HeadlessBrowserTool
     attr_reader :session
     attr_accessor :previous_state
 
-    def initialize(headless: true, be_human: false, be_mostly_human: false)
+    def initialize(headless: true, be_human: false, be_mostly_human: false, session_id: nil)
       # Initialize logger if not already initialized
       HeadlessBrowserTool::Logger.initialize_logger(mode: :http) unless HeadlessBrowserTool::Logger.log
 
       @be_human = be_human
       @be_mostly_human = be_mostly_human
       @human_mode = be_human || be_mostly_human # Either flag enables human mode
-      @session_id = "browser_#{object_id}"
+      @session_id = session_id || "browser_#{object_id}"
       @driver_name = :"selenium_chrome_#{object_id}"
       configure_capybara(headless)
       @session = Capybara::Session.new(@driver_name)

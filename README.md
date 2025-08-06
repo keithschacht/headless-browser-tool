@@ -308,6 +308,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | `refresh` | Reload the current page | None | `{url, title, changed, status}` |
 | `go_back` | Navigate back in browser history | None | `{navigation: {from, to, title, navigated}, status}` |
 | `go_forward` | Navigate forward in browser history | None | `{navigation: {from, to, title, navigated}, status}` |
+| `scroll_to` | Scroll to an element on the page | `selector` (required) | `{selector, element, scroll, element_position, status}` |
 
 #### Element Interaction Tools
 

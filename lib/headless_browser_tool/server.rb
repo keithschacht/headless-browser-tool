@@ -59,7 +59,7 @@ module HeadlessBrowserTool
         puts "Starting HeadlessBrowserTool MCP server on port #{options[:port]}"
 
         # Register shutdown hook for single session persistence
-        at_exit { save_single_session } if @single_session_mode && @session_id
+        at_exit { save_single_session } if @single_session_mode && session_id
 
         # Configure and run with Puma directly
         require "puma"
@@ -92,10 +92,10 @@ module HeadlessBrowserTool
         end
 
         HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
-        @browser_instance = Browser.new(**@browser_options)
+        @browser_instance = Browser.new(**@browser_options, session_id: session_id)
 
         # Restore session if session_id provided
-        restore_single_session if @session_id
+        restore_single_session if session_id
 
         @browser_instance
       end
@@ -103,13 +103,13 @@ module HeadlessBrowserTool
       private
 
       def restore_single_session
-        SessionPersistence.restore_session(@session_id, @browser_instance.session)
+        SessionPersistence.restore_session(session_id, @browser_instance.session)
       end
 
       def save_single_session
-        return unless @session_id && @browser_instance
+        return unless session_id && @browser_instance
 
-        SessionPersistence.save_session(@session_id, @browser_instance.session)
+        SessionPersistence.save_session(session_id, @browser_instance.session)
       end
     end
 
