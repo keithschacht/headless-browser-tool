@@ -452,7 +452,7 @@ class TestEdgeCasesAndErrorsReal < TestBase
       # Take screenshot
       result = make_mcp_request("tools/call", {
                                   name: "screenshot",
-                                  arguments: { filename: test_screenshot_name("edge_case_#{index}"), full_page: true }
+                                  arguments: { filename: test_screenshot_name("edge_case_#{index}") }
                                 })
 
       screenshot_result = parse_tool_result(result)
