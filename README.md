@@ -375,7 +375,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 
 | Tool | Description | Parameters | Key Returns |
 |------|-------------|------------|-------------|
-| `screenshot` | Take screenshot | `filename`, `highlight_selectors`, `annotate`, `full_page` | `{file_path, filename, file_size, timestamp, url, title}` |
+| `screenshot` | Take screenshot | `filename`, `highlight_selectors`, `annotate` | `{file_path, filename, file_size, timestamp, url, title}` |
 | `save_page` | Save HTML to file | `file_path` (required) | `{file_path, file_size, timestamp, url, title, status}` |
 | `visual_diff` | Summarize what changed on the page since last call to this tool | |
 
@@ -470,8 +470,7 @@ curl -X POST http://localhost:4567/ \
        "params": {"name": "screenshot",
                   "arguments": {"filename": "example",
                               "highlight_selectors": [".error", ".warning"],
-                              "annotate": true,
-                              "full_page": true}}}'
+                              "annotate": true}}}'
 
 # Search page content with highlighting
 curl -X POST http://localhost:4567/ \
