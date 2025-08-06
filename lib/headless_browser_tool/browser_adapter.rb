@@ -48,6 +48,10 @@ module HeadlessBrowserTool
       @session.has_selector?(selector, **)
     end
 
+    def find_button(locator, **)
+      @session.find_button(locator, **)
+    end
+
     def has_no_selector?(selector, **)
       @session.has_no_selector?(selector, **)
     end

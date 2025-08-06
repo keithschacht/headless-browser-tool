@@ -43,6 +43,38 @@ module HeadlessBrowserTool
           },
           status: "clicked"
         }
+      rescue Capybara::ElementNotFound
+        {
+          status: "error",
+          error: "Unable to find button: #{button_text_or_selector}",
+          button: button_text_or_selector
+        }
+      rescue Capybara::Ambiguous => e
+        # Extract the number of elements found from the error message
+        match_count = e.message[/found (\d+)/, 1] || "multiple"
+        {
+          status: "error",
+          error: "Ambiguous button selector - found #{match_count} elements matching: #{button_text_or_selector}",
+          button: button_text_or_selector
+        }
+      rescue Selenium::WebDriver::Error::ElementNotInteractableError
+        {
+          status: "error",
+          error: "Button is not interactable (may be hidden or disabled): #{button_text_or_selector}",
+          button: button_text_or_selector
+        }
+      rescue Selenium::WebDriver::Error::InvalidSelectorError
+        {
+          status: "error",
+          error: "Invalid selector: #{button_text_or_selector}",
+          button: button_text_or_selector
+        }
+      rescue StandardError => e
+        {
+          status: "error",
+          error: "Failed to click button: #{e.message}",
+          button: button_text_or_selector
+        }
       end
     end
   end
