@@ -244,6 +244,10 @@ module HeadlessBrowserTool
         }
       end
 
+      # Save session state BEFORE closing the window
+      # This ensures we capture the correct state
+      SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+
       # If closing the current window, switch to another first
       if window_handle == current_handle && @session.windows.length > 1
         other_window = @session.windows.find { |w| w.handle != window_handle }
@@ -261,8 +265,7 @@ module HeadlessBrowserTool
         # Re-raise if it's a different ArgumentError
       end
 
-      # Save session state if we have a session_id
-      SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+      # Session already saved before closing - no need to save again
 
       {
         status: "success",

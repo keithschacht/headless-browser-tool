@@ -522,6 +522,15 @@ module HeadlessBrowserTool
         }
       end
 
+      # Save session state BEFORE closing the window
+      # This ensures we capture the correct state
+      begin
+        SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+      rescue StandardError => e
+        # Log but don't fail the close operation
+        HeadlessBrowserTool::Logger.log.info "Error saving session before close: #{e.message}" if defined?(HeadlessBrowserTool::Logger)
+      end
+
       # If closing the current window, switch to another first
       if window_handle == current_handle && @session.windows.length > 1
         other_window = @session.windows.find { |w| w.handle != window_handle }
@@ -551,12 +560,7 @@ module HeadlessBrowserTool
         end
       end
 
-      # Save session state if we have a session_id
-      begin
-        SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
-      rescue Selenium::WebDriver::Error::InvalidSessionIdError
-        # Can't save if session is terminated
-      end
+      # Session is already saved before closing - no need to save again
 
       # Build response, handling potential invalid session
       begin

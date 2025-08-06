@@ -59,7 +59,19 @@ module HeadlessBrowserTool
             # Now add back our saved cookies
             restore_cookies(capybara_session, state["cookies"])
             
-            # Important: Don't refresh or navigate again - let the user do that
+            # CRITICAL: Refresh the page so the restored cookies take effect
+            # Without this, the page still thinks we're not logged in
+            capybara_session.refresh
+            
+            # Also restore localStorage and sessionStorage after refresh
+            # Some sites need these for authentication state
+            if state["local_storage"] && !state["local_storage"].empty?
+              restore_storage(capybara_session, "localStorage", state["local_storage"])
+            end
+            
+            if state["session_storage"] && !state["session_storage"].empty?
+              restore_storage(capybara_session, "sessionStorage", state["session_storage"])
+            end
           rescue StandardError => e
             HeadlessBrowserTool::Logger.log.info "Error during cookie restoration: #{e.message}"
           end
