@@ -42,17 +42,28 @@ module HeadlessBrowserTool
       begin
         state = JSON.parse(File.read(session_file))
 
-        # Visit the URL first (needed to set cookies/storage for the domain)
-        capybara_session.visit(state["current_url"]) if state["current_url"] && !BLANK_URLS.include?(state["current_url"])
-
-        # Restore cookies
-        restore_cookies(capybara_session, state["cookies"]) if state["cookies"]
-
-        # Restore localStorage
-        restore_storage(capybara_session, "localStorage", state["local_storage"]) if state["local_storage"]
-
-        # Restore sessionStorage
-        restore_storage(capybara_session, "sessionStorage", state["session_storage"]) if state["session_storage"]
+        # Restore cookies if present
+        # Selenium/Chrome requires navigating to the domain before setting cookies
+        # But we want to avoid triggering new session creation
+        if state["cookies"] && !state["cookies"].empty? && state["current_url"]
+          begin
+            uri = URI.parse(state["current_url"])
+            domain_url = "#{uri.scheme}://#{uri.host}"
+            
+            # First navigate to the domain (this might set new cookies)
+            capybara_session.visit(domain_url)
+            
+            # Delete all cookies that were just set
+            capybara_session.driver.browser.manage.delete_all_cookies
+            
+            # Now add back our saved cookies
+            restore_cookies(capybara_session, state["cookies"])
+            
+            # Important: Don't refresh or navigate again - let the user do that
+          rescue StandardError => e
+            HeadlessBrowserTool::Logger.log.info "Error during cookie restoration: #{e.message}"
+          end
+        end
 
         # Restore window size
         if state["window_size"]
