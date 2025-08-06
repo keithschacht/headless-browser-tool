@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "headless_browser_tool"
+require "optparse"
+
+# Parse command line arguments
+options = { headless: true }
+parser = OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    Usage: get_page_as_markdown URL [SELECTOR]
+
+    Examples:
+      get_page_as_markdown https://example.com
+      get_page_as_markdown https://example.com '#main-content'
+  BANNER
+
+  opts.on("-v", "--visible", "Run with visible browser (not headless)") do
+    options[:headless] = false
+  end
+
+  opts.on("-h", "--help", "Show this help message") do
+    puts opts
+    exit
+  end
+end
+
+parser.parse!
+
+# Get URL and optional selector from remaining arguments
+url = ARGV[0]
+selector = ARGV[1]
+
+if url.nil? || url.empty?
+  puts parser.banner
+  exit 1
+end
+
+# Initialize browser and get markdown
+begin
+  browser = HeadlessBrowserTool::Browser.new(headless: options[:headless])
+  browser.visit(url)
+
+  # Get markdown content
+  result = browser.get_page_as_markdown(selector)
+
+  # Output the markdown
+  if result.is_a?(Hash) && result[:markdown]
+    puts result[:markdown]
+  else
+    puts result
+  end
+rescue StandardError => e
+  warn "Error: #{e.message}"
+  exit 1
+end

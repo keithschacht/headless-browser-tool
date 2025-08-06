@@ -325,9 +325,9 @@ All tools are available through the MCP protocol. Here's a complete reference:
 |------|-------------|------------|-------------|
 | `find_element` | Find single element | `selector` (required) | Element details with attributes |
 | `find_all` | Find all matching elements | `selector` (required) | `{elements: [{selector, tag_name, text, visible, attributes}]}` |
-| `find_elements_containing_text` | Find elements with text | `text` (required), `exact_match`, `case_sensitive`, `visible_only` | `{elements: [{selector, xpath, tag, text, clickable}]}` |
+| `find_elements_containing_text` | Find elements with text | `text` (required), `case_sensitive`, `visible_only` | `{elements: [{selector, xpath, tag, text, clickable}]}` |
 | `get_text` | Get element text | `selector` (required) | Text content string |
-| `get_page_as_markdown` | Convert page/element to markdown | `selector` (optional) | `{markdown, status}` |
+| `get_page_as_markdown` | Convert page/element to markdown | `selector` (optional) | Markdown string |
 | `get_attribute` | Get element attribute | `selector`, `attribute` (required) | Attribute value |
 | `get_value` | Get input value | `selector` (required) | Input value |
 | `is_visible` | Check element visibility | `selector` (required) | Boolean |

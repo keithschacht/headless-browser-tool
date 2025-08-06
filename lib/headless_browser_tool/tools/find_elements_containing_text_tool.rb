@@ -10,13 +10,12 @@ module HeadlessBrowserTool
 
       arguments do
         required(:text).filled(:string).description("Text to search for in elements")
-        optional(:exact_match).filled(:bool).description("Require exact text match (default: false)")
         optional(:case_sensitive).filled(:bool).description("Case sensitive search (default: false)")
         optional(:visible_only).filled(:bool).description("Only return visible elements (default: true)")
       end
 
-      def execute(text:, exact_match: false, case_sensitive: false, visible_only: true)
-        script = build_search_script(text, exact_match, case_sensitive, visible_only)
+      def execute(text:, case_sensitive: false, visible_only: true)
+        script = build_search_script(text, case_sensitive, visible_only)
         elements_data = browser.execute_script(script)
 
         # Ensure we have an array to work with
@@ -51,13 +50,13 @@ module HeadlessBrowserTool
 
       private
 
-      def build_search_script(text, exact_match, case_sensitive, visible_only)
+      def build_search_script(text, case_sensitive, visible_only)
         <<~JS
-          (function() {
-            const searchText = #{text.to_json};
-            const exactMatch = #{exact_match};
-            const caseSensitive = #{case_sensitive};
-            const visibleOnly = #{visible_only};
+          return (function() {
+            try {
+              const searchText = #{text.to_json};
+              const caseSensitive = #{case_sensitive};
+              const visibleOnly = #{visible_only};
 
             // Helper to check if element is visible
             function isVisible(elem) {
@@ -130,97 +129,173 @@ module HeadlessBrowserTool
               return '//' + path.join('/');
             }
 
-            // Helper to check if text matches
-            function textMatches(elementText, searchText) {
-              if (!caseSensitive) {
-                elementText = elementText.toLowerCase();
-                searchText = searchText.toLowerCase();
-              }
-
-              if (exactMatch) {
-                return elementText.trim() === searchText.trim();
-              } else {
-                return elementText.includes(searchText);
-              }
-            }
-
-            // Helper to check if element is clickable
-            function isClickable(elem) {
+            // Helper to check if element is directly clickable
+            function isDirectlyClickable(elem) {
               const tag = elem.tagName.toLowerCase();
-              return tag === 'a' || tag === 'button' ||
-                     elem.onclick !== null ||
-                     elem.hasAttribute('onclick') ||
-                     elem.style.cursor === 'pointer' ||
-                     elem.role === 'button' ||
-                     elem.role === 'link';
+              // Check common clickable elements
+              if (tag === 'a' || tag === 'button' ||#{" "}
+                  tag === 'input' || tag === 'select' ||#{" "}
+                  tag === 'textarea' || tag === 'label') {
+                return true;
+              }
+              // Check for click handlers or role attributes
+              if (elem.onclick !== null ||
+                  elem.hasAttribute('onclick') ||
+                  elem.style.cursor === 'pointer' ||
+                  elem.role === 'button' ||
+                  elem.role === 'link' ||
+                  elem.role === 'tab' ||
+                  elem.hasAttribute('tabindex')) {
+                return true;
+              }
+              return false;
             }
 
-            // Find all text nodes and their parent elements
+            // Helper to check if element is clickable (including ancestors)
+            function isClickable(elem) {
+              // Check the element itself
+              if (isDirectlyClickable(elem)) return true;
+          #{"    "}
+              // Check ancestors up to body
+              let parent = elem.parentElement;
+              while (parent && parent !== document.body) {
+                if (isDirectlyClickable(parent)) return true;
+                parent = parent.parentElement;
+              }
+              return false;
+            }
+
+            // Main search logic using XPath to find direct text containers
             const results = [];
             const processed = new Set();
-            const walker = document.createTreeWalker(
-              document.body,
-              NodeFilter.SHOW_TEXT,
-              {
-                acceptNode: function(node) {
-                  if (node.textContent.trim().length === 0) {
-                    return NodeFilter.FILTER_REJECT;
-                  }
-                  return NodeFilter.FILTER_ACCEPT;
-                }
-              }
-            );
-
-            let node;
-            while (node = walker.nextNode()) {
-              const parent = node.parentElement;
-              if (!parent || processed.has(parent)) continue;
-
-              const text = parent.textContent;
-              if (textMatches(text, searchText)) {
-                if (visibleOnly && !isVisible(parent)) continue;
-
-                processed.add(parent);
-
-                // Get element attributes
-                const attributes = {};
-                if (parent.attributes && parent.attributes.length) {
-                  for (let i = 0; i < parent.attributes.length; i++) {
-                    const attr = parent.attributes[i];
-                    attributes[attr.name] = attr.value;
+          #{"  "}
+            // Prepare search text for XPath
+            const searchTextLower = caseSensitive ? searchText : searchText.toLowerCase();
+          #{"  "}
+            // Walk through all elements and check if they directly contain the search text
+            const allElements = document.getElementsByTagName('*');
+          #{"  "}
+            for (let elem of allElements) {
+              // Skip if already processed
+              if (processed.has(elem)) continue;
+          #{"    "}
+              // Skip script and style elements
+              if (elem.tagName === 'SCRIPT' || elem.tagName === 'STYLE' || elem.tagName === 'NOSCRIPT') continue;
+          #{"    "}
+              // Check if element's direct text (not from children) contains search text
+              let directText = '';
+              let hasDirectText = false;
+              for (let node of elem.childNodes) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                  directText += node.textContent;
+                  if (node.textContent.trim().length > 0) {
+                    hasDirectText = true;
                   }
                 }
-
-                // Get position
-                const rect = parent.getBoundingClientRect();
-
-                results.push({
-                  tag: parent.tagName.toLowerCase(),
-                  text: text.trim().substring(0, 200), // Limit text length
-                  selector: getSelector(parent),
-                  xpath: getXPath(parent),
-                  attributes: attributes,
-                  parent: parent.parentElement ? parent.parentElement.tagName.toLowerCase() : null,
-                  clickable: isClickable(parent),
-                  visible: isVisible(parent),
-                  position: {
-                    top: rect.top + window.scrollY,
-                    left: rect.left + window.scrollX,
-                    width: rect.width,
-                    height: rect.height
-                  }
-                });
               }
+          #{"    "}
+              // Skip if no direct text
+              if (!hasDirectText) continue;
+          #{"    "}
+              // Check text match
+              const textToCheck = caseSensitive ? directText : directText.toLowerCase();
+              if (!textToCheck.includes(searchTextLower)) continue;
+          #{"    "}
+              // Check visibility if required
+              if (visibleOnly && !isVisible(elem)) continue;
+          #{"    "}
+              // Add to processed set
+              processed.add(elem);
+
+              // Get element attributes
+              const attributes = {};
+              if (elem.attributes && elem.attributes.length) {
+                for (let i = 0; i < elem.attributes.length; i++) {
+                  const attr = elem.attributes[i];
+                  attributes[attr.name] = attr.value;
+                }
+              }
+
+              // Get position
+              const rect = elem.getBoundingClientRect();
+
+              results.push({
+                tag: elem.tagName.toLowerCase(),
+                text: elem.textContent.trim().substring(0, 200), // Full text content, limited
+                selector: getSelector(elem),
+                xpath: getXPath(elem),
+                attributes: attributes,
+                parent: elem.parentElement ? elem.parentElement.tagName.toLowerCase() : null,
+                clickable: isClickable(elem),
+                visible: isVisible(elem),
+                position: {
+                  top: rect.top + window.scrollY,
+                  left: rect.left + window.scrollX,
+                  width: rect.width,
+                  height: rect.height
+                }
+              });
             }
 
-            // Also search in input values
-            document.querySelectorAll('input, textarea, select').forEach(elem => {
+            // Also search in input/textarea values
+            document.querySelectorAll('input, textarea').forEach(elem => {
               if (processed.has(elem)) return;
 
-              const value = elem.value || elem.textContent;
-              if (value && textMatches(value, searchText)) {
-                if (visibleOnly && !isVisible(elem)) return;
+              const value = elem.value;
+              if (!value) return;
+          #{"    "}
+              const valueToCheck = caseSensitive ? value : value.toLowerCase();
+              if (!valueToCheck.includes(searchTextLower)) return;
+          #{"    "}
+              if (visibleOnly && !isVisible(elem)) return;
 
+              processed.add(elem);
+          #{"    "}
+              const attributes = {};
+              if (elem.attributes && elem.attributes.length) {
+                for (let i = 0; i < elem.attributes.length; i++) {
+                  const attr = elem.attributes[i];
+                  attributes[attr.name] = attr.value;
+                }
+              }
+
+              const rect = elem.getBoundingClientRect();
+
+              results.push({
+                tag: elem.tagName.toLowerCase(),
+                text: value.trim().substring(0, 200),
+                selector: getSelector(elem),
+                xpath: getXPath(elem),
+                attributes: attributes,
+                parent: elem.parentElement ? elem.parentElement.tagName.toLowerCase() : null,
+                clickable: true, // Input elements are always clickable
+                visible: isVisible(elem),
+                position: {
+                  top: rect.top + window.scrollY,
+                  left: rect.left + window.scrollX,
+                  width: rect.width,
+                  height: rect.height
+                }
+              });
+            });
+
+            // Also check for elements with text in specific attributes
+            const attributesToCheck = ['placeholder', 'title', 'aria-label', 'alt'];
+            attributesToCheck.forEach(attrName => {
+              const attrSelector = '[' + attrName + ']';
+              document.querySelectorAll(attrSelector).forEach(elem => {
+                if (processed.has(elem)) return;
+          #{"      "}
+                const attrValue = elem.getAttribute(attrName);
+                if (!attrValue) return;
+          #{"      "}
+                const valueToCheck = caseSensitive ? attrValue : attrValue.toLowerCase();
+                if (!valueToCheck.includes(searchTextLower)) return;
+          #{"      "}
+                if (visibleOnly && !isVisible(elem)) return;
+          #{"      "}
+                processed.add(elem);
+          #{"      "}
                 const attributes = {};
                 if (elem.attributes && elem.attributes.length) {
                   for (let i = 0; i < elem.attributes.length; i++) {
@@ -233,12 +308,12 @@ module HeadlessBrowserTool
 
                 results.push({
                   tag: elem.tagName.toLowerCase(),
-                  text: value.trim().substring(0, 200),
+                  text: (elem.textContent || attrValue).trim().substring(0, 200),
                   selector: getSelector(elem),
                   xpath: getXPath(elem),
                   attributes: attributes,
                   parent: elem.parentElement ? elem.parentElement.tagName.toLowerCase() : null,
-                  clickable: true,
+                  clickable: isClickable(elem),
                   visible: isVisible(elem),
                   position: {
                     top: rect.top + window.scrollY,
@@ -247,10 +322,13 @@ module HeadlessBrowserTool
                     height: rect.height
                   }
                 });
-              }
+              });
             });
 
-            return results;
+              return results;
+            } catch(e) {
+              return { error: e.toString(), stack: e.stack };
+            }
           })();
         JS
       end

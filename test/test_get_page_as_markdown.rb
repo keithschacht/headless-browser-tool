@@ -329,6 +329,7 @@ class TestGetPageAsMarkdown < TestBase
     # Should return empty string, not an error
     refute result["error"]
     markdown = parse_tool_result(result)
+
     assert_equal "", markdown.strip
   end
 
@@ -357,9 +358,10 @@ class TestGetPageAsMarkdown < TestBase
     # The tool should handle non-existent selectors gracefully
     # It should return empty content rather than throwing an exception
     refute result["error"], "Tool should not return an error for non-existent selector"
-    
+
     # Should return empty markdown content
     markdown = parse_tool_result(result)
+
     assert_equal "", markdown.strip
   end
 end

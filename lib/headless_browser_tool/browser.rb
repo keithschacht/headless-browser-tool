@@ -278,7 +278,7 @@ module HeadlessBrowserTool
 
         # Convert to markdown
         md = ReverseMarkdown.convert(inner_html.gsub("\n", ""), unknown_tags: :bypass)
-        
+
         # Return just the markdown string
         md
       ensure
