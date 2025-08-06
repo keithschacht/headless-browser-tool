@@ -435,7 +435,15 @@ module HeadlessBrowserTool
     def evaluate_script(javascript_code)
       if @be_human && @cdp_initialized && cdp_available?
         begin
-          execute_cdp_script(javascript_code)
+          result = execute_cdp_script(javascript_code)
+          # If CDP returns nil (undefined), fall back to regular evaluate_script
+          # CDP returns nil for undefined values, but we want the actual JavaScript result
+          if result.nil?
+            HeadlessBrowserTool::Logger.log.debug "CDP returned nil, falling back to regular evaluate_script"
+            @session.evaluate_script(javascript_code)
+          else
+            result
+          end
         rescue StandardError => e
           HeadlessBrowserTool::Logger.log.warn "CDP evaluation failed, falling back: #{e.message}"
           @session.evaluate_script(javascript_code)

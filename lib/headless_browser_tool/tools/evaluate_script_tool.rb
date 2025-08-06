@@ -13,7 +13,11 @@ module HeadlessBrowserTool
       end
 
       def execute(javascript_code:)
-        browser.evaluate_script(javascript_code)
+        result = browser.evaluate_script(javascript_code)
+        {
+          result: result,
+          type: result.class.name
+        }
       end
     end
   end

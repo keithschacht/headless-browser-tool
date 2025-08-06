@@ -16,7 +16,7 @@ module HeadlessBrowserTool
 
       def execute(text:, case_sensitive: false, visible_only: true)
         script = build_search_script(text, case_sensitive, visible_only)
-        elements_data = browser.execute_script(script)
+        elements_data = browser.evaluate_script(script)
 
         # Ensure we have an array to work with
         elements_data = [] if elements_data.nil?
@@ -52,7 +52,7 @@ module HeadlessBrowserTool
 
       def build_search_script(text, case_sensitive, visible_only)
         <<~JS
-          return (function() {
+          (function() {
             try {
               const searchText = #{text.to_json};
               const caseSensitive = #{case_sensitive};
