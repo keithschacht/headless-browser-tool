@@ -17,12 +17,17 @@ module HeadlessBrowserTool
 
         initial_scroll_position = browser.evaluate_script("window.pageYOffset")
 
-        browser.execute_script("arguments[0].scrollIntoView({ behavior: 'instant', block: 'start' });", element.native)
+        # Use JavaScript to find and scroll to the element by selector
+        # This works with both CDP and regular Selenium modes
+        escaped_selector = selector.gsub("'", "\\\\'")
+        browser.execute_script("const el = document.querySelector('#{escaped_selector}'); if (el) { el.scrollIntoView({ behavior: 'instant', block: 'start' }); }")
 
         sleep 0.1
 
         final_scroll_position = browser.evaluate_script("window.pageYOffset")
-        element_rect = browser.evaluate_script("arguments[0].getBoundingClientRect()", element.native)
+        
+        # Get element rect using selector instead of element reference
+        element_rect = browser.evaluate_script("const el = document.querySelector('#{escaped_selector}'); return el ? el.getBoundingClientRect() : null;")
 
         {
           selector: selector,
