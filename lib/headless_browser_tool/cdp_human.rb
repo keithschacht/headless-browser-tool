@@ -12,10 +12,10 @@ module HeadlessBrowserTool
     class CDPError < StandardError; end
 
     def setup_cdp(driver)
-      HeadlessBrowserTool::Logger.log.info "[CDP] Starting CDP setup..."
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Starting CDP setup..."
 
       @driver = driver
-      HeadlessBrowserTool::Logger.log.info "[CDP] Getting devtools..."
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Getting devtools..."
 
       # Try to load selenium/devtools first
       begin
@@ -29,29 +29,29 @@ module HeadlessBrowserTool
       end
 
       @devtools = driver.devtools
-      HeadlessBrowserTool::Logger.log.info "[CDP] Devtools obtained"
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Devtools obtained"
 
       @main_frame_id = nil
       @cdp_context_manager = CDPContextManager.new("browser_#{driver.object_id}")
       @cdp_executor = CDPExecutor.new(self, @cdp_context_manager, @devtools)
 
       # Enable necessary domains
-      HeadlessBrowserTool::Logger.log.info "[CDP] Enabling domains..."
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Enabling domains..."
       enable_cdp_domains
 
       # Get main frame ID
-      HeadlessBrowserTool::Logger.log.info "[CDP] Fetching frame ID..."
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Fetching frame ID..."
       @main_frame_id = fetch_frame_id
 
       # Register navigation handler
-      HeadlessBrowserTool::Logger.log.info "[CDP] Registering navigation handler..."
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Registering navigation handler..."
       register_navigation_handler
 
       # Inject human scripts
-      HeadlessBrowserTool::Logger.log.info "[CDP] Injecting human scripts..."
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Injecting human scripts..."
       inject_human_scripts
 
-      HeadlessBrowserTool::Logger.log.info "[CDP] Human mode initialized successfully"
+      HeadlessBrowserTool::Logger.log.debug "[CDP] Human mode initialized successfully"
       true
     rescue StandardError => e
       HeadlessBrowserTool::Logger.log.error "[CDP] Failed to setup CDP: #{e.message}"

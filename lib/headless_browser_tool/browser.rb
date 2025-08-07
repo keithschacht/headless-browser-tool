@@ -30,6 +30,7 @@ module HeadlessBrowserTool
       @be_mostly_human = be_mostly_human
       @human_mode = be_human || be_mostly_human # Either flag enables human mode
       @session_id = session_id || "browser_#{object_id}"
+      HeadlessBrowserTool::Logger.log.info "Browser initialized with session_id: #{@session_id}"
       @driver_name = :"selenium_chrome_#{object_id}"
       configure_capybara(headless)
       @session = Capybara::Session.new(@driver_name)
@@ -58,7 +59,7 @@ module HeadlessBrowserTool
         @cdp_initialized = setup_cdp(@session.driver.browser)
 
         if @cdp_initialized
-          HeadlessBrowserTool::Logger.log.info "CDP human mode enabled on first navigation"
+          HeadlessBrowserTool::Logger.log.debug "CDP human mode enabled on first navigation"
         else
           HeadlessBrowserTool::Logger.log.warn "CDP setup failed, using JS injection fallback"
         end
@@ -506,11 +507,14 @@ module HeadlessBrowserTool
     end
 
     def close_window(window_handle)
+      HeadlessBrowserTool::Logger.log.info "=== Starting close_window operation ==="
       initial_windows_count = @session.windows.length
       current_handle = @session.current_window.handle
+      HeadlessBrowserTool::Logger.log.info "Initial windows count: #{initial_windows_count}, Current handle: #{current_handle}"
 
       # Support "current" as a special keyword
       window_handle = current_handle if window_handle == "current"
+      HeadlessBrowserTool::Logger.log.info "Window to close: #{window_handle}"
 
       window = @session.windows.find { |w| w.handle == window_handle }
 
@@ -525,10 +529,18 @@ module HeadlessBrowserTool
       # Save session state BEFORE closing the window
       # This ensures we capture the correct state
       begin
-        SessionPersistence.save_session(@session_id, @session) if @session_id && defined?(SessionPersistence)
+        HeadlessBrowserTool::Logger.log.info "Checking if should save session: session_id=#{@session_id.inspect}, SessionPersistence defined=#{defined?(SessionPersistence)}"
+        if @session_id && defined?(SessionPersistence)
+          HeadlessBrowserTool::Logger.log.info "Saving session before window close with session_id: #{@session_id}"
+          SessionPersistence.save_session(@session_id, @session)
+          HeadlessBrowserTool::Logger.log.info "Session saved successfully"
+        else
+          HeadlessBrowserTool::Logger.log.info "Skipping session save - no session_id or SessionPersistence not defined"
+        end
       rescue StandardError => e
         # Log but don't fail the close operation
-        HeadlessBrowserTool::Logger.log.info "Error saving session before close: #{e.message}" if defined?(HeadlessBrowserTool::Logger)
+        HeadlessBrowserTool::Logger.log.info "Error saving session before close: #{e.message}"
+        HeadlessBrowserTool::Logger.log.info "Backtrace: #{e.backtrace.first(3).join("\n  ")}"
       end
 
       # If closing the current window, switch to another first
@@ -538,7 +550,9 @@ module HeadlessBrowserTool
       end
 
       begin
+        HeadlessBrowserTool::Logger.log.info "Closing window using Capybara window.close"
         window.close
+        HeadlessBrowserTool::Logger.log.info "Window closed successfully"
       rescue ArgumentError => e
         # Capybara raises ArgumentError when trying to close the primary window
         raise unless e.message.include?("primary window")

@@ -20,7 +20,7 @@ module HeadlessBrowserTool
                  ::Logger.new($stdout, progname: "HBT")
                end
 
-        @log.level = ENV["HBT_LOG_LEVEL"] ? ::Logger.const_get(ENV["HBT_LOG_LEVEL"]) : ::Logger::WARN
+        @log.level = ENV["HBT_LOG_LEVEL"] ? ::Logger.const_get(ENV["HBT_LOG_LEVEL"]) : ::Logger::INFO
         @log
       end
 

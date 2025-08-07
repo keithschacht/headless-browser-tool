@@ -92,6 +92,8 @@ module HeadlessBrowserTool
         end
 
         HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
+        HeadlessBrowserTool::Logger.log.info "Current session_id: #{session_id.inspect}"
+        HeadlessBrowserTool::Logger.log.info "Checking if session file exists: #{SessionPersistence.session_exists?(session_id) if session_id}"
         @browser_instance = Browser.new(**@browser_options, session_id: session_id)
 
         # Restore session if session_id provided
