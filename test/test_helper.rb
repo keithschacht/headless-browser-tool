@@ -30,35 +30,19 @@ max_workers = if ENV["CI"]
 max_workers = [max_workers, 4].min
 Minitest.parallel_executor = Minitest::Parallel::Executor.new(max_workers)
 
-# Create a custom logger for tests that suppresses noisy messages
-class QuietTestLogger < Logger
-  SUPPRESSED_MESSAGES = [
-    /Error saving session: invalid session id/,
-    /Creating browser instance on first use/,
-    /Browser InvalidSessionIdError.*creating new instance and retrying/,
-    /\[CDP\]/, # Suppress all CDP messages
-    /CDP human mode enabled/,
-    /Human mode \(without CDP\) enabled/
-  ].freeze
+# Create a null logger for tests that suppresses all output
+class NullLogger < Logger
+  def initialize
+    # Initialize with a StringIO that we never use
+    super(StringIO.new)
+    self.level = Logger::FATAL
+  end
 
-  def add(severity, message = nil, progname = nil, &)
-    # Get the message string
-    msg = if message.nil?
-            if block_given?
-              yield
-            else
-              progname
-            end
-          else
-            message
-          end
-
-    # Suppress noisy messages during tests
-    return if msg && SUPPRESSED_MESSAGES.any? { |pattern| msg.match?(pattern) }
-
-    super
+  def add(_severity, _message = nil, _progname = nil, &)
+    # Suppress all log messages during tests
+    nil
   end
 end
 
-# Initialize logger with our custom test logger
-HeadlessBrowserTool::Logger.instance_variable_set(:@log, QuietTestLogger.new($stdout))
+# Initialize logger with our null logger for tests
+HeadlessBrowserTool::Logger.instance_variable_set(:@log, NullLogger.new)
