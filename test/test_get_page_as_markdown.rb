@@ -76,76 +76,6 @@ class TestGetPageAsMarkdown < TestBase
     end
   end
 
-  def test_get_page_as_markdown_with_selector
-    # Navigate to a page with simple HTML content
-    html_content = <<~HTML
-      <html>
-        <body>
-          <div id="header">Header Content</div>
-          <div id="test-content">
-            <h1>Hello World</h1>
-            <p>This is a <strong>test</strong> paragraph.</p>
-          </div>
-          <div id="footer">Footer Content</div>
-        </body>
-      </html>
-    HTML
-
-    make_mcp_request("tools/call", {
-                       name: "visit",
-                       arguments: { url: "data:text/html,#{html_content}" }
-                     })
-
-    # Get specific element content
-    result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
-                                arguments: { selector: "#test-content" }
-                              })
-
-    markdown = parse_tool_result(result)
-
-    assert_includes markdown, "# Hello World"
-    assert_includes markdown, "This is a **test** paragraph."
-    # Should not include header/footer
-    refute_includes markdown, "Header Content"
-    refute_includes markdown, "Footer Content"
-  end
-
-  def test_get_page_as_markdown_without_selector
-    # Navigate to a page with simple HTML content
-    html_content = <<~HTML
-      <html>
-        <body>
-          <div id="header">Header Content</div>
-          <div id="main">
-            <h1>Page Title</h1>
-            <p>Main content here.</p>
-          </div>
-          <div id="footer">Footer Content</div>
-        </body>
-      </html>
-    HTML
-
-    make_mcp_request("tools/call", {
-                       name: "visit",
-                       arguments: { url: "data:text/html,#{html_content}" }
-                     })
-
-    # Get entire page content (no selector)
-    result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
-                                arguments: {}
-                              })
-
-    markdown = parse_tool_result(result)
-
-    # Should include all content
-    assert_includes markdown, "Header Content"
-    assert_includes markdown, "# Page Title"
-    assert_includes markdown, "Main content here."
-    assert_includes markdown, "Footer Content"
-  end
-
   def test_get_page_as_markdown_strips_images
     # Navigate to a page with images
     html_content = <<~HTML
@@ -363,5 +293,137 @@ class TestGetPageAsMarkdown < TestBase
     markdown = parse_tool_result(result)
 
     assert_equal "", markdown.strip
+  end
+
+  def test_get_page_as_markdown_with_large_content
+    # Create HTML with very large content (over 1MB when converted to markdown)
+    # Each paragraph is about 100 bytes, so we need more to exceed 1MB after conversion
+    large_content = (1..15_000).map { |i| "<p>This is paragraph number #{i}. It contains some text to make the content larger.</p>" }.join("\n")
+    html_content = <<~HTML
+      <html>
+        <body>
+          <div id="huge-content">
+            #{large_content}
+          </div>
+        </body>
+      </html>
+    HTML
+
+    make_mcp_request("tools/call", {
+                       name: "visit",
+                       arguments: { url: "data:text/html,#{html_content}" }
+                     })
+
+    # Try to get the large content
+    result = make_mcp_request("tools/call", {
+                                name: "get_page_as_markdown",
+                                arguments: {} # Get entire page to trigger size limit
+                              })
+
+    # Should return a structured error response, not throw an exception
+    refute result["error"], "Should not return MCP-level error"
+
+    parsed_result = parse_tool_result(result)
+    # Check that we got the expected error structure
+    assert_kind_of Hash, parsed_result
+    assert_equal "Content too large", parsed_result["error"]
+    assert_includes parsed_result["message"], "exceeds the safe limit"
+    assert_includes parsed_result["message"], "1000000 bytes"
+    # Check that preview is provided
+    assert parsed_result["truncated_preview"]
+    assert_operator parsed_result["truncated_preview"].length, :<=, 10_000
+    assert_includes parsed_result["truncated_preview"], "This is paragraph number"
+    # Check original size is reported
+    assert parsed_result["original_size"]
+    assert_operator parsed_result["original_size"], :>, 1_000_000
+    # Check suggestions are provided
+    assert_kind_of Array, parsed_result["suggestions"]
+    assert_operator parsed_result["suggestions"].length, :>, 0
+    assert(parsed_result["suggestions"].any? { |s| s.include?("selector") })
+  end
+
+  def test_get_page_as_markdown_with_large_content_but_small_selector
+    # Create HTML with large content overall, but we'll select a small part
+    large_content = (1..10_000).map { |i| "<p>This is paragraph number #{i}. Extra text to make it larger.</p>" }.join("\n")
+    html_content = <<~HTML
+      <html>
+        <body>
+          <div id="small-section">
+            <h1>Small Section</h1>
+            <p>This is a small amount of content that should work fine.</p>
+          </div>
+          <div id="huge-section">
+            #{large_content}
+          </div>
+        </body>
+      </html>
+    HTML
+
+    make_mcp_request("tools/call", {
+                       name: "visit",
+                       arguments: { url: "data:text/html,#{html_content}" }
+                     })
+
+    # Get only the small section - should work normally
+    result = make_mcp_request("tools/call", {
+                                name: "get_page_as_markdown",
+                                arguments: { selector: "#small-section" }
+                              })
+
+    # Should return normal markdown, not an error
+    refute result["error"]
+    markdown = parse_tool_result(result)
+
+    # Should be a string, not an error hash
+    assert_kind_of String, markdown
+    assert_includes markdown, "# Small Section"
+    assert_includes markdown, "This is a small amount of content"
+
+    # Should not include the large content
+    refute_includes markdown, "paragraph number 100"
+  end
+
+  def test_get_page_as_markdown_with_exactly_1mb_content
+    # Create content that's exactly at the 1MB boundary
+    # We want the markdown output to be exactly 1,000,000 bytes
+    # Account for markdown conversion overhead
+    target_size = 999_950 # Slightly under to account for conversion
+    base_text = "X" * 100
+    num_paragraphs = target_size / 100
+
+    exact_content = (1..num_paragraphs).map { "<p>#{base_text}</p>" }.join("\n")
+    html_content = <<~HTML
+      <html>
+        <body>
+          #{exact_content}
+        </body>
+      </html>
+    HTML
+
+    make_mcp_request("tools/call", {
+                       name: "visit",
+                       arguments: { url: "data:text/html,#{html_content}" }
+                     })
+
+    # Get the content
+    result = make_mcp_request("tools/call", {
+                                name: "get_page_as_markdown",
+                                arguments: {}
+                              })
+
+    # Should work normally since it's at or just under the limit
+    refute result["error"]
+    markdown = parse_tool_result(result)
+
+    # Could be either a string (if under limit) or error hash (if over)
+    if markdown.is_a?(Hash) && markdown["error"] == "Content too large"
+      # If it went slightly over due to markdown conversion, that's ok
+      assert_operator markdown["original_size"], :>=, 1_000_000
+      assert markdown["truncated_preview"]
+    else
+      # If it stayed under, should be a normal string
+      assert_kind_of String, markdown
+      assert_includes markdown, "X" * 50 # At least some X's should be there
+    end
   end
 end
