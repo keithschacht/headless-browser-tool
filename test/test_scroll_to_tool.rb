@@ -133,8 +133,6 @@ class MockBrowserForScroll
       { "top" => 100, "left" => 50 }
     when /window\.innerHeight/
       768
-    else
-      nil
     end
   end
 end
@@ -159,7 +157,6 @@ class MockScrollElement
     case attr
     when :id then "target-id"
     when :class then "target-class"
-    else nil
     end
   end
 

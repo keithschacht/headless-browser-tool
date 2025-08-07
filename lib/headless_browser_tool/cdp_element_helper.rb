@@ -12,23 +12,23 @@ module HeadlessBrowserTool
         find_element_js = <<~JS
           (function() {
             const selector = '#{escape_selector(selector)}';
-            
+          #{"  "}
             // First try as a CSS selector
             let el = document.querySelector(selector);
             if (el) return el;
-            
+          #{"  "}
             // Try by ID (without #)
             el = document.getElementById(selector);
             if (el) return el;
-            
+          #{"  "}
             // Try by name attribute
             el = document.querySelector(`[name="${selector}"]`);
             if (el) return el;
-            
+          #{"  "}
             // Try by placeholder
             el = document.querySelector(`[placeholder="${selector}"]`);
             if (el) return el;
-            
+          #{"  "}
             // Try by label text (for form fields)
             const labels = document.querySelectorAll('label');
             for (const label of labels) {
@@ -43,7 +43,7 @@ module HeadlessBrowserTool
                 if (el) return el;
               }
             }
-            
+          #{"  "}
             // Try button by text
             const buttons = document.querySelectorAll('button, input[type="button"], input[type="submit"]');
             for (const btn of buttons) {
@@ -51,7 +51,7 @@ module HeadlessBrowserTool
                 return btn;
               }
             }
-            
+          #{"  "}
             // Try link by text
             const links = document.querySelectorAll('a');
             for (const link of links) {
@@ -59,7 +59,7 @@ module HeadlessBrowserTool
                 return link;
               }
             }
-            
+          #{"  "}
             return null;
           })()
         JS

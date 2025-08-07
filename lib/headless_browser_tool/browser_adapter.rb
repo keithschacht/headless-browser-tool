@@ -231,7 +231,9 @@ module HeadlessBrowserTool
       HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] === Starting close_window operation ===" if defined?(HeadlessBrowserTool::Logger)
       initial_windows_count = @session.windows.length
       current_handle = @session.current_window.handle
-      HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Initial windows: #{initial_windows_count}, Current handle: #{current_handle}" if defined?(HeadlessBrowserTool::Logger)
+      if defined?(HeadlessBrowserTool::Logger)
+        HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Initial windows: #{initial_windows_count}, Current handle: #{current_handle}"
+      end
 
       # Support "current" as a special keyword
       window_handle = current_handle if window_handle == "current"
@@ -249,12 +251,16 @@ module HeadlessBrowserTool
 
       # Save session state BEFORE closing the window
       # This ensures we capture the correct state
-      HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Checking session save: session_id=#{@session_id.inspect}, SessionPersistence defined=#{defined?(SessionPersistence)}" if defined?(HeadlessBrowserTool::Logger)
+      if defined?(HeadlessBrowserTool::Logger)
+        HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Checking session save: session_id=#{@session_id.inspect}, SessionPersistence defined=#{defined?(SessionPersistence)}"
+      end
       if @session_id && defined?(SessionPersistence)
         HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Saving session with ID: #{@session_id}" if defined?(HeadlessBrowserTool::Logger)
         SessionPersistence.save_session(@session_id, @session)
-      else
-        HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Skipping session save - no session_id or SessionPersistence not defined" if defined?(HeadlessBrowserTool::Logger)
+      elsif defined?(HeadlessBrowserTool::Logger)
+        if defined?(HeadlessBrowserTool::Logger)
+          HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Skipping session save - no session_id or SessionPersistence not defined"
+        end
       end
 
       # If closing the current window, switch to another first
