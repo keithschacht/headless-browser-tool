@@ -314,7 +314,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 
 | Tool | Description | Parameters | Returns |
 |------|-------------|------------|----------|
-| `click` | Click an element | `selector` (required) | `{selector, element, navigation, status}` |
+| `click` | Click an element. Use `index` for multiple matches | `selector` (required), `index` (optional, 0-based) | `{selector, element, navigation, status, index}` |
 | `right_click` | Right-click an element | `selector` (required) | `{selector, element, status}` |
 | `double_click` | Double-click an element | `selector` (required) | `{selector, element, status}` |
 | `hover` | Hover mouse over element | `selector` (required) | `{selector, element, status}` |
@@ -482,6 +482,15 @@ curl -X POST http://localhost:4567/ \
                   "arguments": {"query": "error|warning",
                               "regex": true,
                               "highlight": true}}}'
+
+# Click the third button when selector matches multiple elements
+curl -X POST http://localhost:4567/ \
+  -H "Content-Type: application/json" \
+  -H "X-Session-ID: alice" \
+  -d '{"jsonrpc": "2.0", "id": 4, "method": "tools/call",
+       "params": {"name": "click",
+                  "arguments": {"selector": ".submit-button",
+                              "index": 2}}}'
 ```
 
 ### Environment Variables
