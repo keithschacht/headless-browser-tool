@@ -22,6 +22,12 @@ module HeadlessBrowserTool
         # If error occurred, return the error status
         return result if result[:status] == "error"
 
+        # If we closed the last window in single-session mode, clear the browser instance
+        # This prevents "no such window" errors on the next request
+        if HeadlessBrowserTool::Server.single_session_mode && result[:remaining_windows] == 0
+          HeadlessBrowserTool::Server.browser_instance = nil
+        end
+
         # Use the data from the browser.close_window result instead of querying again
         # This avoids InvalidSessionIdError when the session is terminated
         {

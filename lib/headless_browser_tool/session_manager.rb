@@ -65,8 +65,8 @@ module HeadlessBrowserTool
           begin
             # Try to access the browser to see if it's still alive
             session.current_url
-          rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::SessionNotCreatedError, Selenium::WebDriver::Error::InvalidSessionIdError
-            # Browser window was closed or session terminated, remove the dead session
+          rescue StandardError
+            # ANY error means the browser is dead - remove the dead session
             HeadlessBrowserTool::Logger.log.info "Session #{session_id} browser window closed, creating new session"
             @sessions.delete(session_id)
           end
