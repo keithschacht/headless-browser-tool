@@ -25,7 +25,7 @@ module HeadlessBrowserTool
         sleep 0.1
 
         final_scroll_position = browser.evaluate_script("window.pageYOffset")
-        
+
         # Get element rect using selector instead of element reference
         element_rect = browser.evaluate_script("const el = document.querySelector('#{escaped_selector}'); return el ? el.getBoundingClientRect() : null;")
 

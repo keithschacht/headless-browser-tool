@@ -50,7 +50,7 @@ module HeadlessBrowserTool
         else
           puts "Running in multi-session mode"
           self.session_manager = SessionManager.new(headless: options[:headless], be_human: options[:be_human],
-                                                     be_mostly_human: options[:be_mostly_human])
+                                                    be_mostly_human: options[:be_mostly_human])
         end
 
         # Setup directory structure
@@ -119,6 +119,8 @@ module HeadlessBrowserTool
         return unless session_id && browser_instance
 
         SessionPersistence.save_session(session_id, browser_instance.session)
+      rescue StandardError => e
+        HeadlessBrowserTool::Logger.log.info "Error saving session during shutdown: #{e.message}"
       end
     end
 

@@ -235,10 +235,17 @@ module HeadlessBrowserTool
       HeadlessBrowserTool::Logger.log.info "Shutting down all sessions..."
       @mutex.synchronize do
         @sessions.each do |session_id, session|
-          save_session_state(session_id, session)
-          session.quit
-        rescue StandardError => e
-          HeadlessBrowserTool::Logger.log.info "Error shutting down session #{session_id}: #{e.message}"
+          begin
+            save_session_state(session_id, session)
+          rescue StandardError => e
+            HeadlessBrowserTool::Logger.log.info "Error saving session #{session_id}: #{e.message}"
+          end
+
+          begin
+            session.quit
+          rescue StandardError => e
+            HeadlessBrowserTool::Logger.log.info "Error quitting session #{session_id}: #{e.message}"
+          end
         end
         @sessions.clear
       end

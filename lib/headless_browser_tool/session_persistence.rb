@@ -34,17 +34,15 @@ module HeadlessBrowserTool
         }
 
         # Don't overwrite existing session with blank data
-        if BLANK_URLS.include?(state[:current_url]) && state[:cookies].empty?
-          # Check if there's an existing session file with data
-          if File.exist?(session_file)
-            existing_state = JSON.parse(File.read(session_file))
-            # If existing session has cookies or meaningful URL, don't overwrite with blank
-            if !existing_state["cookies"].empty? || !BLANK_URLS.include?(existing_state["current_url"])
-              HeadlessBrowserTool::Logger.log.info "Skipping save - would overwrite existing session with blank data"
-              HeadlessBrowserTool::Logger.log.info "  Current: #{state[:current_url]} with #{state[:cookies].length} cookies"
-              HeadlessBrowserTool::Logger.log.info "  Existing: #{existing_state["current_url"]} with #{existing_state["cookies"].length} cookies"
-              return
-            end
+        # Check if there's an existing session file with data
+        if BLANK_URLS.include?(state[:current_url]) && state[:cookies].empty? && File.exist?(session_file)
+          existing_state = JSON.parse(File.read(session_file))
+          # If existing session has cookies or meaningful URL, don't overwrite with blank
+          if !existing_state["cookies"].empty? || !BLANK_URLS.include?(existing_state["current_url"])
+            HeadlessBrowserTool::Logger.log.info "Skipping save - would overwrite existing session with blank data"
+            HeadlessBrowserTool::Logger.log.info "  Current: #{state[:current_url]} with #{state[:cookies].length} cookies"
+            HeadlessBrowserTool::Logger.log.info "  Existing: #{existing_state["current_url"]} with #{existing_state["cookies"].length} cookies"
+            return
           end
         end
 
