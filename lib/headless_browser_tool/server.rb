@@ -84,9 +84,9 @@ module HeadlessBrowserTool
             # Try to access the browser to see if it's still alive
             browser_instance.session.current_url
             return browser_instance
-          rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::SessionNotCreatedError => e
-            # Browser window was closed, need to create a new instance
-            HeadlessBrowserTool::Logger.log.info "Browser window closed (#{e.class}), creating new instance..."
+          rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::SessionNotCreatedError, Selenium::WebDriver::Error::InvalidSessionIdError => e
+            # Browser window was closed or session terminated, need to create a new instance
+            HeadlessBrowserTool::Logger.log.info "Browser closed or session invalid (#{e.class}), creating new instance..."
             self.browser_instance = nil
           end
         end
