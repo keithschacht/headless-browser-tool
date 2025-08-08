@@ -29,11 +29,16 @@ module HeadlessBrowserTool
       # Log request headers if enabled
       log_request_headers(env) if HeadlessBrowserTool::Server.show_headers
 
-      # Extract session ID from headers first
-      session_id = extract_session_id(env)
+      # In single-session mode, always use the configured session ID
+      if HeadlessBrowserTool::Server.single_session_mode && HeadlessBrowserTool::Server.session_id
+        session_id = HeadlessBrowserTool::Server.session_id
+      else
+        # Extract session ID from headers first
+        session_id = extract_session_id(env)
 
-      # For MCP connections, try to maintain session continuity
-      session_id = get_or_create_mcp_session(env) if session_id == DEFAULT_SESSION && mcp_request?(env)
+        # For MCP connections, try to maintain session continuity
+        session_id = get_or_create_mcp_session(env) if session_id == DEFAULT_SESSION && mcp_request?(env)
+      end
 
       # Store in environment for downstream use
       env["hbt.session_id"] = session_id

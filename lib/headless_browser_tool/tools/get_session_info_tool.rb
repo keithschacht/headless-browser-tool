@@ -12,7 +12,7 @@ module HeadlessBrowserTool
         if HeadlessBrowserTool::Server.single_session_mode
           {
             mode: "single_session",
-            session_id: "shared",
+            session_id: HeadlessBrowserTool::Server.session_id || "shared",
             message: "Server is running in single session mode"
           }
         else

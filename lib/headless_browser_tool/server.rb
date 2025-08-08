@@ -26,31 +26,31 @@ module HeadlessBrowserTool
         HeadlessBrowserTool::Logger.initialize_logger(mode: :http)
 
         # Check if we should use single session mode
-        @single_session_mode = options[:single_session] || ENV["HBT_SINGLE_SESSION"] == "true"
-        @show_headers = options[:show_headers] || ENV["HBT_SHOW_HEADERS"] == "true"
-        @be_human = options[:be_human]
-        @be_mostly_human = options[:be_mostly_human]
+        self.single_session_mode = options[:single_session] || ENV["HBT_SINGLE_SESSION"] == "true"
+        self.show_headers = options[:show_headers] || ENV["HBT_SHOW_HEADERS"] == "true"
+        self.be_human = options[:be_human]
+        self.be_mostly_human = options[:be_mostly_human]
 
         # Store options for lazy initialization
-        @browser_options = { headless: options[:headless], be_human: options[:be_human], be_mostly_human: options[:be_mostly_human] }
+        self.browser_options = { headless: options[:headless], be_human: options[:be_human], be_mostly_human: options[:be_mostly_human] }
 
         # Validate session_id option
-        if options[:session_id] && !@single_session_mode
+        if options[:session_id] && !single_session_mode
           puts "Error: --session-id can only be used with --single-session"
           exit 1
         end
 
-        if @single_session_mode
+        if single_session_mode
           puts "Running in single session mode"
           if options[:session_id]
             puts "Session ID: #{options[:session_id]}"
-            @session_id = options[:session_id]
+            self.session_id = options[:session_id]
           end
           # Don't create browser instance here - wait for first use
         else
           puts "Running in multi-session mode"
-          @session_manager = SessionManager.new(headless: options[:headless], be_human: options[:be_human],
-                                                be_mostly_human: options[:be_mostly_human])
+          self.session_manager = SessionManager.new(headless: options[:headless], be_human: options[:be_human],
+                                                     be_mostly_human: options[:be_mostly_human])
         end
 
         # Setup directory structure
@@ -59,7 +59,7 @@ module HeadlessBrowserTool
         puts "Starting HeadlessBrowserTool MCP server on port #{options[:port]}"
 
         # Register shutdown hook for single session persistence
-        at_exit { save_single_session } if @single_session_mode && session_id
+        at_exit { save_single_session } if single_session_mode && session_id
 
         # Configure and run with Puma directly
         require "puma"
@@ -79,39 +79,39 @@ module HeadlessBrowserTool
 
       def get_or_create_browser
         # Check if browser instance exists and is still valid
-        if @browser_instance
+        if browser_instance
           begin
             # Try to access the browser to see if it's still alive
-            @browser_instance.session.current_url
-            return @browser_instance
+            browser_instance.session.current_url
+            return browser_instance
           rescue Selenium::WebDriver::Error::NoSuchWindowError, Selenium::WebDriver::Error::SessionNotCreatedError => e
             # Browser window was closed, need to create a new instance
             HeadlessBrowserTool::Logger.log.info "Browser window closed (#{e.class}), creating new instance..."
-            @browser_instance = nil
+            self.browser_instance = nil
           end
         end
 
         HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
         HeadlessBrowserTool::Logger.log.info "Current session_id: #{session_id.inspect}"
         HeadlessBrowserTool::Logger.log.info "Checking if session file exists: #{SessionPersistence.session_exists?(session_id) if session_id}"
-        @browser_instance = Browser.new(**@browser_options, session_id: session_id)
+        self.browser_instance = Browser.new(**browser_options, session_id: session_id)
 
         # Restore session if session_id provided
         restore_single_session if session_id
 
-        @browser_instance
+        browser_instance
       end
 
       private
 
       def restore_single_session
-        SessionPersistence.restore_session(session_id, @browser_instance.session)
+        SessionPersistence.restore_session(session_id, browser_instance.session)
       end
 
       def save_single_session
-        return unless session_id && @browser_instance
+        return unless session_id && browser_instance
 
-        SessionPersistence.save_session(session_id, @browser_instance.session)
+        SessionPersistence.save_session(session_id, browser_instance.session)
       end
     end
 
