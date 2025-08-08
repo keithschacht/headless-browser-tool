@@ -95,22 +95,11 @@ module HeadlessBrowserTool
 
             # Log current cookies after restoration
             current_cookies = capybara_session.driver.browser.manage.all_cookies
-            HeadlessBrowserTool::Logger.log.info "Cookies after restoration (before refresh): #{current_cookies.length}"
+            HeadlessBrowserTool::Logger.log.info "Cookies after restoration: #{current_cookies.length}"
             HeadlessBrowserTool::Logger.log.info "Cookie names: #{current_cookies.map { |c| c[:name] }.join(", ")}"
 
-            HeadlessBrowserTool::Logger.log.info "Step 4: Refreshing page to activate cookies"
-            # CRITICAL: Refresh the page so the restored cookies take effect
-            # Without this, the page still thinks we're not logged in
-            capybara_session.refresh
-
-            # Log cookies after refresh
-            current_cookies_after = capybara_session.driver.browser.manage.all_cookies
-            HeadlessBrowserTool::Logger.log.info "Cookies after refresh: #{current_cookies_after.length}"
-            HeadlessBrowserTool::Logger.log.info "Cookie names after refresh: #{current_cookies_after.map { |c| c[:name] }.join(", ")}"
-
-            HeadlessBrowserTool::Logger.log.info "Step 5: Restoring localStorage and sessionStorage"
-            # Also restore localStorage and sessionStorage after refresh
-            # Some sites need these for authentication state
+            HeadlessBrowserTool::Logger.log.info "Step 4: Restoring localStorage and sessionStorage"
+            # Restore storage BEFORE refresh so everything is in place
             if state["local_storage"] && !state["local_storage"].empty?
               HeadlessBrowserTool::Logger.log.info "  - Restoring #{state["local_storage"].length} localStorage items"
               restore_storage(capybara_session, "localStorage", state["local_storage"])
@@ -121,7 +110,18 @@ module HeadlessBrowserTool
               restore_storage(capybara_session, "sessionStorage", state["session_storage"])
             end
 
-            HeadlessBrowserTool::Logger.log.info "Cookie restoration completed successfully"
+            HeadlessBrowserTool::Logger.log.info "Step 5: Refreshing page to activate restored session"
+            # CRITICAL: Refresh the page AFTER restoring everything (cookies + storage)
+            # This ensures the page has all the data it needs to show logged-in state
+            capybara_session.refresh
+
+            # Log cookies after refresh
+            current_cookies_after = capybara_session.driver.browser.manage.all_cookies
+            HeadlessBrowserTool::Logger.log.info "Cookies after refresh: #{current_cookies_after.length}"
+            HeadlessBrowserTool::Logger.log.info "Cookie names after refresh: #{current_cookies_after.map { |c| c[:name] }.join(", ")}"
+
+            HeadlessBrowserTool::Logger.log.info "Session restoration completed successfully"
+            
           rescue StandardError => e
             HeadlessBrowserTool::Logger.log.info "ERROR during cookie restoration: #{e.message}"
             HeadlessBrowserTool::Logger.log.info "Backtrace: #{e.backtrace.first(5).join("\n  ")}"
@@ -130,13 +130,18 @@ module HeadlessBrowserTool
           HeadlessBrowserTool::Logger.log.info "Skipping cookie restoration - no cookies or URL in saved state"
         end
 
-        # Restore window size
+        # Restore window size - handle errors gracefully since window might be closed
         if state["window_size"]
-          HeadlessBrowserTool::Logger.log.info "Restoring window size: #{state["window_size"]["width"]}x#{state["window_size"]["height"]}"
-          capybara_session.current_window.resize_to(
-            state["window_size"]["width"],
-            state["window_size"]["height"]
-          )
+          begin
+            HeadlessBrowserTool::Logger.log.info "Restoring window size: #{state["window_size"]["width"]}x#{state["window_size"]["height"]}"
+            capybara_session.current_window.resize_to(
+              state["window_size"]["width"],
+              state["window_size"]["height"]
+            )
+          rescue Selenium::WebDriver::Error::NoSuchWindowError => e
+            # Window resize can fail if window was closed - this is not a corrupted session
+            HeadlessBrowserTool::Logger.log.info "Could not restore window size (window closed): #{e.message}"
+          end
         end
 
         HeadlessBrowserTool::Logger.log.info "=== Session restoration completed for: #{session_id} ==="
@@ -144,12 +149,17 @@ module HeadlessBrowserTool
       rescue StandardError => e
         HeadlessBrowserTool::Logger.log.info "ERROR restoring session: #{e.message}"
         HeadlessBrowserTool::Logger.log.info "Backtrace: #{e.backtrace.first(5).join("\n  ")}"
-        # Delete corrupted state file
-        begin
-          File.delete(session_file)
-          HeadlessBrowserTool::Logger.log.info "Deleted corrupted session file"
-        rescue StandardError
-          nil
+        
+        # Only delete session file for actual corruption/parsing errors, not browser state issues
+        if e.is_a?(JSON::ParserError)
+          begin
+            File.delete(session_file)
+            HeadlessBrowserTool::Logger.log.info "Deleted corrupted session file (invalid JSON)"
+          rescue StandardError
+            nil
+          end
+        else
+          HeadlessBrowserTool::Logger.log.info "Keeping session file - error was not due to corruption"
         end
         false
       end
