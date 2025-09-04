@@ -24,7 +24,7 @@ module HeadlessBrowserTool
     
     def call(env)
       # Remove or normalize the HOST header to bypass Rack's built-in check
-      env['HTTP_HOST'] = 'localhost:4567' if env['HTTP_HOST'] == 'mcp:4567'
+      env['HTTP_HOST'] = 'localhost:4567' if env['HTTP_HOST'] && env['HTTP_HOST'].end_with?(':4567')
       @app.call(env)
     end
   end
