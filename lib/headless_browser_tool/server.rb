@@ -17,6 +17,10 @@ require_relative "directory_setup"
 
 module HeadlessBrowserTool
   class Server < Sinatra::Base
+    # Allow any hostname to connect (needed for Docker container networking with custom hostnames)
+    # This is safe since the server only listens on internal Docker networks
+    set :protection, except: :host_authorization
+    
     class << self
       attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human, :be_mostly_human,
                     :browser_options
