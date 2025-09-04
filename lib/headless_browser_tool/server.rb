@@ -17,9 +17,13 @@ require_relative "directory_setup"
 
 module HeadlessBrowserTool
   class Server < Sinatra::Base
-    # Disable all rack protection to allow Docker container networking with custom hostnames
-    # This is safe since the server only listens on internal Docker networks
-    set :protection, false
+    # Configure Sinatra settings
+    configure do
+      # Disable rack protection to allow Docker container networking with custom hostnames
+      # This is safe since the server only listens on internal Docker networks
+      set :protection, false
+      set :bind, '0.0.0.0'  # Ensure we bind to all interfaces
+    end
     
     class << self
       attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human, :be_mostly_human,
