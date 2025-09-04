@@ -16,15 +16,20 @@ require_relative "session_persistence"
 require_relative "directory_setup"
 
 module HeadlessBrowserTool
-  class Server < Sinatra::Base
-    # Configure Sinatra settings
-    configure do
-      # Disable rack protection to allow Docker container networking with custom hostnames
-      # This is safe since the server only listens on internal Docker networks
-      set :protection, false
-      set :bind, '0.0.0.0'  # Ensure we bind to all interfaces
+  # Middleware to bypass host authorization
+  class HostAuthorizationBypass
+    def initialize(app)
+      @app = app
     end
     
+    def call(env)
+      # Remove or normalize the HOST header to bypass Rack's built-in check
+      env['HTTP_HOST'] = 'localhost:4567' if env['HTTP_HOST'] == 'mcp:4567'
+      @app.call(env)
+    end
+  end
+  
+  class Server < Sinatra::Base
     class << self
       attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human, :be_mostly_human,
                     :browser_options
@@ -78,11 +83,17 @@ module HeadlessBrowserTool
         require "puma/plugin"
         Puma::Plugins.instance_variable_set(:@plugins, {})
         
+        # Wrap the app with our bypass middleware
+        app = Rack::Builder.new do
+          use HeadlessBrowserTool::HostAuthorizationBypass
+          run Server
+        end
+        
         puma_config = Puma::Configuration.new do |config|
           config.bind "tcp://0.0.0.0:#{options[:port]}"
           config.environment "production"
           config.quiet false
-          config.app Server
+          config.app app
         end
 
         launcher = Puma::Launcher.new(puma_config)
