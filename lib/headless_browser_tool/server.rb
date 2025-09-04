@@ -65,7 +65,11 @@ module HeadlessBrowserTool
         require "puma"
         require "puma/configuration"
         require "puma/launcher"
-
+        
+        # Disable automatic plugin discovery
+        require "puma/plugin"
+        Puma::Plugins.instance_variable_set(:@plugins, {})
+        
         puma_config = Puma::Configuration.new do |config|
           config.bind "tcp://0.0.0.0:#{options[:port]}"
           config.environment "production"
