@@ -66,6 +66,7 @@ class TestClickTool < Minitest::Test
 
     result = tool.execute(selector: "#placeOrder", index: 2)
 
+    assert_equal "success", result[:status], "Should have status: 'success'"
     assert_equal "#placeOrder", result[:selector]
     assert_equal 2, result[:index]
     assert_equal "button", result[:element][:tag_name]
@@ -119,6 +120,7 @@ class TestClickTool < Minitest::Test
 
     result = tool.execute(selector: "#submit", index: 0)
 
+    assert_equal "success", result[:status], "Should have status: 'success'"
     assert_equal "#submit", result[:selector]
     assert_nil result[:index] # Index should not be included when only one element
     assert_equal "button", result[:element][:tag_name]
@@ -225,6 +227,7 @@ class TestClickTool < Minitest::Test
 
     result = tool.execute(selector: "a.link")
 
+    assert_equal "success", result[:status], "Should have status: 'success'"
     assert_equal "a.link", result[:selector]
     assert_nil result[:index]
     assert_equal "a", result[:element][:tag_name]
@@ -250,6 +253,10 @@ class MockBrowserForClick
 
   def session
     self # Return self as a mock session
+  end
+
+  def windows
+    ["mock_window"] # Return non-empty array to indicate browser has windows
   end
 
   def current_url

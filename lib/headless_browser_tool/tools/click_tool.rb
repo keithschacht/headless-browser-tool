@@ -78,6 +78,7 @@ module HeadlessBrowserTool
         sleep 0.1
 
         result = {
+          status: "success",
           selector: selector,
           element: {
             tag_name: tag_name,
