@@ -39,7 +39,11 @@ module HeadlessBrowserTool
             ]
           }
         else
-          markdown_content
+          # Wrap the markdown string in a structured response
+          {
+            status: "success",
+            result: markdown_content
+          }
         end
       end
     end

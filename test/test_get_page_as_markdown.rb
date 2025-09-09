@@ -105,14 +105,20 @@ class TestGetPageAsMarkdown < TestBase
 
     markdown = parse_tool_result(result)
 
-    assert_includes markdown, "Before image"
-    assert_includes markdown, "After image"
-    assert_includes markdown, "End"
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
+    assert_includes content, "Before image"
+    assert_includes content, "After image"
+    assert_includes content, "End"
     # Images should be completely removed
-    refute_includes markdown, "![Test Image]"
-    refute_includes markdown, "![Another Image]"
-    refute_includes markdown, "test.jpg"
-    refute_includes markdown, "another.png"
+    refute_includes content, "![Test Image]"
+    refute_includes content, "![Another Image]"
+    refute_includes content, "test.jpg"
+    refute_includes content, "another.png"
   end
 
   def test_get_page_as_markdown_with_amazon_tracking_urls
@@ -142,15 +148,21 @@ class TestGetPageAsMarkdown < TestBase
 
     markdown = parse_tool_result(result)
 
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
     # Should have cleaned Amazon URLs
-    assert_includes markdown, "[Product Link](https://www.amazon.com/dp/B08N5WRWNW)"
-    assert_includes markdown, "[Another Product](https://www.amazon.com/dp/B08N5WRWNW)"
-    assert_includes markdown, "[Search Link](https://www.amazon.com/s"
+    assert_includes content, "[Product Link](https://www.amazon.com/dp/B08N5WRWNW)"
+    assert_includes content, "[Another Product](https://www.amazon.com/dp/B08N5WRWNW)"
+    assert_includes content, "[Search Link](https://www.amazon.com/s"
     # Should not have tracking URLs
-    refute_includes markdown, "aax-us-iad.amazon.com"
-    refute_includes markdown, "aax-us-east.amazon.com"
-    refute_includes markdown, "ref=sr_1_1"
-    refute_includes markdown, "ref=nb_sb_noss"
+    refute_includes content, "aax-us-iad.amazon.com"
+    refute_includes content, "aax-us-east.amazon.com"
+    refute_includes content, "ref=sr_1_1"
+    refute_includes content, "ref=nb_sb_noss"
   end
 
   def test_get_page_as_markdown_with_nested_lists
@@ -187,12 +199,18 @@ class TestGetPageAsMarkdown < TestBase
 
     markdown = parse_tool_result(result)
 
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
     # ReverseMarkdown uses dashes for lists, not asterisks
-    assert_includes markdown, "- Item 1"
-    assert_includes markdown, "- Item 2"
-    assert_includes markdown, "  - Nested 2.1"
-    assert_includes markdown, "  - Nested 2.2"
-    assert_includes markdown, "- Item 3"
+    assert_includes content, "- Item 1"
+    assert_includes content, "- Item 2"
+    assert_includes content, "  - Nested 2.1"
+    assert_includes content, "  - Nested 2.2"
+    assert_includes content, "- Item 3"
   end
 
   def test_get_page_as_markdown_with_table
@@ -237,10 +255,16 @@ class TestGetPageAsMarkdown < TestBase
 
     markdown = parse_tool_result(result)
 
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
     # ReverseMarkdown converts tables to pipe-separated format
-    assert_includes markdown, "| Name | Age |"
-    assert_includes markdown, "| John | 25 |"
-    assert_includes markdown, "| Jane | 30 |"
+    assert_includes content, "| Name | Age |"
+    assert_includes content, "| John | 25 |"
+    assert_includes content, "| Jane | 30 |"
   end
 
   def test_get_page_as_markdown_element_not_found
@@ -378,13 +402,17 @@ class TestGetPageAsMarkdown < TestBase
     refute result["error"]
     markdown = parse_tool_result(result)
 
-    # Should be a string, not an error hash
-    assert_kind_of String, markdown
-    assert_includes markdown, "# Small Section"
-    assert_includes markdown, "This is a small amount of content"
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
+    assert_includes content, "# Small Section"
+    assert_includes content, "This is a small amount of content"
 
     # Should not include the large content
-    refute_includes markdown, "paragraph number 100"
+    refute_includes content, "paragraph number 100"
   end
 
   def test_get_page_as_markdown_with_adjacent_spans
@@ -421,10 +449,16 @@ class TestGetPageAsMarkdown < TestBase
 
     markdown = parse_tool_result(result)
     
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
     # Should have proper spacing between span contents
-    refute_includes markdown, "Hello, PariAccount"
-    assert_includes markdown, "Hello, Pari"
-    assert_includes markdown, "Account for Schacht Family LLC"
+    refute_includes content, "Hello, PariAccount"
+    assert_includes content, "Hello, Pari"
+    assert_includes content, "Account for Schacht Family LLC"
     
     # Test divs get proper line breaks
     result = make_mcp_request("tools/call", {
@@ -434,12 +468,18 @@ class TestGetPageAsMarkdown < TestBase
 
     markdown = parse_tool_result(result)
     
+    # Should return structured response
+    assert_kind_of Hash, markdown
+    assert_equal "success", markdown["status"]
+    assert_kind_of String, markdown["result"]
+    
+    content = markdown["result"]
     # Divs should be on separate lines
-    refute_includes markdown, "First lineSecond line"
-    refute_includes markdown, "Second lineThird line"
-    assert_includes markdown, "First line"
-    assert_includes markdown, "Second line"
-    assert_includes markdown, "Third line"
+    refute_includes content, "First lineSecond line"
+    refute_includes content, "Second lineThird line"
+    assert_includes content, "First line"
+    assert_includes content, "Second line"
+    assert_includes content, "Third line"
   end
 
   def test_get_page_as_markdown_with_exactly_1mb_content
@@ -474,15 +514,17 @@ class TestGetPageAsMarkdown < TestBase
     refute result["error"]
     markdown = parse_tool_result(result)
 
-    # Could be either a string (if under limit) or error hash (if over)
+    # Could be either a success response or error hash (if over limit)
     if markdown.is_a?(Hash) && markdown["error"] == "Content too large"
       # If it went slightly over due to markdown conversion, that's ok
       assert_operator markdown["original_size"], :>=, 1_000_000
       assert markdown["truncated_preview"]
     else
-      # If it stayed under, should be a normal string
-      assert_kind_of String, markdown
-      assert_includes markdown, "X" * 50 # At least some X's should be there
+      # If it stayed under, should be a structured success response
+      assert_kind_of Hash, markdown
+      assert_equal "success", markdown["status"]
+      assert_kind_of String, markdown["result"]
+      assert_includes markdown["result"], "X" * 50 # At least some X's should be there
     end
   end
 end
