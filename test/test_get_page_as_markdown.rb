@@ -387,6 +387,61 @@ class TestGetPageAsMarkdown < TestBase
     refute_includes markdown, "paragraph number 100"
   end
 
+  def test_get_page_as_markdown_with_adjacent_spans
+    # Test that adjacent spans don't run together without spacing
+    html_content = <<~HTML
+      <html>
+        <body>
+          <a href="https://example.com" id="test-link">
+            <span class="nav-line-1">Hello, Pari</span>
+            <span class="nav-line-2">
+              <span class="abnav-accountfor">Account for Schacht Family LLC</span>
+              <span class="nav-icon nav-arrow">▼</span>
+            </span>
+          </a>
+          <div id="divs-test">
+            <div>First line</div>
+            <div>Second line</div>
+            <div>Third line</div>
+          </div>
+        </body>
+      </html>
+    HTML
+
+    make_mcp_request("tools/call", {
+                       name: "visit",
+                       arguments: { url: "data:text/html,#{html_content}" }
+                     })
+
+    # Test the link with spans
+    result = make_mcp_request("tools/call", {
+                                name: "get_page_as_markdown",
+                                arguments: { selector: "#test-link" }
+                              })
+
+    markdown = parse_tool_result(result)
+    
+    # Should have proper spacing between span contents
+    refute_includes markdown, "Hello, PariAccount"
+    assert_includes markdown, "Hello, Pari"
+    assert_includes markdown, "Account for Schacht Family LLC"
+    
+    # Test divs get proper line breaks
+    result = make_mcp_request("tools/call", {
+                                name: "get_page_as_markdown",
+                                arguments: { selector: "#divs-test" }
+                              })
+
+    markdown = parse_tool_result(result)
+    
+    # Divs should be on separate lines
+    refute_includes markdown, "First lineSecond line"
+    refute_includes markdown, "Second lineThird line"
+    assert_includes markdown, "First line"
+    assert_includes markdown, "Second line"
+    assert_includes markdown, "Third line"
+  end
+
   def test_get_page_as_markdown_with_exactly_1mb_content
     # Create content that's exactly at the 1MB boundary
     # We want the markdown output to be exactly 1,000,000 bytes

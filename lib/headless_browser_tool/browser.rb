@@ -280,8 +280,18 @@ module HeadlessBrowserTool
           inner_html = @session.evaluate_script("document.body.innerHTML")
         end
 
+        # Preprocess HTML to ensure proper spacing
+        # Add newlines after block elements and spaces between inline elements
+        processed_html = inner_html.gsub(%r{</div>}i, "</div>\n")
+                                   .gsub(%r{</p>}i, "</p>\n")
+                                   .gsub(%r{</h[1-6]>}i, "</h1>\n")
+                                   .gsub(%r{</li>}i, "</li>\n")
+                                   .gsub(%r{</span>}i, "</span> ")
+                                   .gsub(/\s+/, " ") # Normalize whitespace
+                                   .strip
+
         # Convert to markdown
-        md = ReverseMarkdown.convert(inner_html.gsub("\n", ""), unknown_tags: :bypass)
+        md = ReverseMarkdown.convert(processed_html, unknown_tags: :bypass)
 
         # Return just the markdown string
         md
