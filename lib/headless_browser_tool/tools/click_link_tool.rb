@@ -42,6 +42,11 @@ module HeadlessBrowserTool
           },
           status: "success"
         }
+      rescue Capybara::ElementNotFound
+        {
+          status: "error",
+          error: "Unable to find link #{link_text_or_selector}"
+        }
       end
     end
   end
