@@ -40,7 +40,7 @@ module HeadlessBrowserTool
             to: browser.current_url,
             title: browser.title
           },
-          status: "clicked"
+          status: "success"
         }
       end
     end
