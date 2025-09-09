@@ -156,8 +156,9 @@ class TestFindElementTool < TestBase
 
     @browser.visit "data:text/html,#{html.gsub(/\s+/, " ").strip.gsub("#", "%23")}"
 
-    assert_raises(Capybara::ElementNotFound) do
-      @tool.execute(selector: "#non-existent")
-    end
+    result = @tool.execute(selector: "#non-existent")
+    
+    assert_equal "error", result[:status]
+    assert_equal "Unable to find element #non-existent", result[:error]
   end
 end
