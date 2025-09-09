@@ -48,6 +48,7 @@ require_relative "tools/search_source_tool"
 require_relative "tools/visual_diff_tool"
 require_relative "tools/get_page_context_tool"
 require_relative "tools/get_session_info_tool"
+require_relative "tools/save_session_tool"
 require_relative "tools/about_tool"
 
 module HeadlessBrowserTool
@@ -100,6 +101,7 @@ module HeadlessBrowserTool
       VisualDiffTool,
       GetPageContextTool,
       GetSessionInfoTool,
+      SaveSessionTool,
       AboutTool
     ].freeze
   end

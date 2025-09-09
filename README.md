@@ -396,6 +396,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | Tool | Description | Returns |
 |------|-------------|---------|
 | `get_session_info` | Get session information | Session details |
+| `save_session` | Save the browser's current session info (e.g. cookies) to disk to later reuse | Session save status with details |
 
 ### Tool Response Structure
 
