@@ -94,7 +94,7 @@ class TestSaveSessionTool < TestBase
     parsed_result = parse_tool_result(result)
 
     # Check the response
-    assert_equal "saved", parsed_result["status"]
+    assert_equal "success", parsed_result["status"]
     assert_equal @session_id, parsed_result["session_id"]
     assert parsed_result["saved_at"]
     assert_equal "https://example.com/", parsed_result["current_url"]
@@ -135,7 +135,7 @@ class TestSaveSessionTool < TestBase
                                })
     parsed_result1 = parse_tool_result(result1)
 
-    assert_equal "saved", parsed_result1["status"]
+    assert_equal "success", parsed_result1["status"]
     saved_at1 = parsed_result1["saved_at"]
 
     # Wait a moment to ensure different timestamp
@@ -154,7 +154,7 @@ class TestSaveSessionTool < TestBase
                                })
     parsed_result2 = parse_tool_result(result2)
 
-    assert_equal "saved", parsed_result2["status"]
+    assert_equal "success", parsed_result2["status"]
     assert_equal "https://www.google.com/", parsed_result2["current_url"]
     refute_equal saved_at1, parsed_result2["saved_at"], "Timestamps should be different"
 
@@ -203,7 +203,7 @@ class TestSaveSessionTool < TestBase
 
     parsed_result = parse_tool_result(result)
 
-    assert_equal "saved", parsed_result["status"]
+    assert_equal "success", parsed_result["status"]
 
     # NOTE: data: URLs typically don't allow cookies, so cookies_count might be 0
     # This is expected behavior for data URLs
@@ -233,7 +233,7 @@ class TestSaveSessionTool < TestBase
 
     parsed_result = parse_tool_result(result)
 
-    assert_equal "saved", parsed_result["status"]
+    assert_equal "success", parsed_result["status"]
 
     # localStorage might be blocked or cleared on example.com
     # Just verify the save operation succeeded
@@ -269,7 +269,7 @@ class TestSaveSessionTool < TestBase
 
     parsed_result = parse_tool_result(result)
 
-    assert_equal "saved", parsed_result["status"]
+    assert_equal "success", parsed_result["status"]
 
     # Verify window size was saved (just check that it exists and has reasonable values)
     returned_file_path = parsed_result["file_path"]
@@ -292,7 +292,7 @@ class TestSaveSessionTool < TestBase
     parsed_result = parse_tool_result(result)
 
     # Should still save successfully even with blank page
-    assert_equal "saved", parsed_result["status"]
+    assert_equal "success", parsed_result["status"]
     assert_equal @session_id, parsed_result["session_id"]
     assert_includes ["about:blank", "data:,"], parsed_result["current_url"]
     assert_equal 0, parsed_result["cookies_count"]
@@ -316,7 +316,7 @@ class TestSaveSessionTool < TestBase
 
     parsed_result = parse_tool_result(result)
 
-    assert_equal "saved", parsed_result["status"]
+    assert_equal "success", parsed_result["status"]
 
     # Read the saved session file
     returned_file_path = parsed_result["file_path"]

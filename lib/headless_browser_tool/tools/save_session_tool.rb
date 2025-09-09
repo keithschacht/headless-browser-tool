@@ -48,7 +48,7 @@ module HeadlessBrowserTool
           if File.exist?(session_file)
             state = JSON.parse(File.read(session_file))
             {
-              status: "saved",
+              status: "success",
               session_id: session_id,
               saved_at: state["saved_at"],
               current_url: state["current_url"],
@@ -59,7 +59,7 @@ module HeadlessBrowserTool
             }
           else
             {
-              status: "saved",
+              status: "success",
               session_id: session_id,
               message: "Session saved but file verification failed",
               file_path: session_file
