@@ -269,8 +269,11 @@ module HeadlessBrowserTool
             element = @session.find(selector)
             inner_html = element.native.attribute("innerHTML")
           rescue Capybara::ElementNotFound
-            # If selector not found, return empty string
-            return ""
+            # If selector not found, return error
+            return {
+              error: "Element not found",
+              message: "Selector '#{selector}' did not match any elements"
+            }
           end
         else
           # Get entire page body

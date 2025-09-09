@@ -18,6 +18,9 @@ module HeadlessBrowserTool
       def execute(selector: nil)
         markdown_content = browser.get_page_as_markdown(selector)
 
+        # If it's already an error hash, return it directly
+        return markdown_content if markdown_content.is_a?(Hash) && markdown_content[:error]
+
         # Check response size (MCP typically has issues with responses > 1MB)
         max_size = 1_000_000 # 1MB limit
         if markdown_content.bytesize > max_size

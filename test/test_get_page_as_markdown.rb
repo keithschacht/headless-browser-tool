@@ -256,11 +256,13 @@ class TestGetPageAsMarkdown < TestBase
                                 arguments: { selector: "#non-existent" }
                               })
 
-    # Should return empty string, not an error
+    # Should return error object, not empty string
     refute result["error"]
     markdown = parse_tool_result(result)
 
-    assert_equal "", markdown.strip
+    assert_kind_of Hash, markdown
+    assert_equal "Element not found", markdown["error"]
+    assert_equal "Selector '#non-existent' did not match any elements", markdown["message"]
   end
 
   def test_get_page_as_markdown_with_non_existent_selector
@@ -286,13 +288,15 @@ class TestGetPageAsMarkdown < TestBase
                               })
 
     # The tool should handle non-existent selectors gracefully
-    # It should return empty content rather than throwing an exception
-    refute result["error"], "Tool should not return an error for non-existent selector"
+    # It should return an error object rather than throwing an exception
+    refute result["error"], "Tool should not return an MCP-level error for non-existent selector"
 
-    # Should return empty markdown content
+    # Should return error object
     markdown = parse_tool_result(result)
 
-    assert_equal "", markdown.strip
+    assert_kind_of Hash, markdown
+    assert_equal "Element not found", markdown["error"]
+    assert_equal "Selector '.sc-buy-box' did not match any elements", markdown["message"]
   end
 
   def test_get_page_as_markdown_with_large_content
