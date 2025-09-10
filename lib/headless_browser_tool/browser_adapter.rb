@@ -252,7 +252,9 @@ module HeadlessBrowserTool
       # Save session state BEFORE closing the window
       # This ensures we capture the correct state
       if defined?(HeadlessBrowserTool::Logger)
-        HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Checking session save: session_id=#{@session_id.inspect}, SessionPersistence defined=#{defined?(SessionPersistence)}"
+        HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Checking session save: " \
+                                             "session_id=#{@session_id.inspect}, " \
+                                             "SessionPersistence defined=#{defined?(SessionPersistence)}"
       end
       if @session_id && defined?(SessionPersistence)
         HeadlessBrowserTool::Logger.log.info "[BrowserAdapter] Saving session with ID: #{@session_id}" if defined?(HeadlessBrowserTool::Logger)

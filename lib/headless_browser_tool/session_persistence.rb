@@ -121,7 +121,6 @@ module HeadlessBrowserTool
             HeadlessBrowserTool::Logger.log.info "Cookie names after refresh: #{current_cookies_after.map { |c| c[:name] }.join(", ")}"
 
             HeadlessBrowserTool::Logger.log.info "Session restoration completed successfully"
-            
           rescue StandardError => e
             HeadlessBrowserTool::Logger.log.info "ERROR during cookie restoration: #{e.message}"
             HeadlessBrowserTool::Logger.log.info "Backtrace: #{e.backtrace.first(5).join("\n  ")}"
@@ -149,7 +148,7 @@ module HeadlessBrowserTool
       rescue StandardError => e
         HeadlessBrowserTool::Logger.log.info "ERROR restoring session: #{e.message}"
         HeadlessBrowserTool::Logger.log.info "Backtrace: #{e.backtrace.first(5).join("\n  ")}"
-        
+
         # Only delete session file for actual corruption/parsing errors, not browser state issues
         if e.is_a?(JSON::ParserError)
           begin

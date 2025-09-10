@@ -109,8 +109,9 @@ class TestGetPageAsMarkdown < TestBase
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
+
     assert_includes content, "Before image"
     assert_includes content, "After image"
     assert_includes content, "End"
@@ -152,7 +153,7 @@ class TestGetPageAsMarkdown < TestBase
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
     # Should have cleaned Amazon URLs
     assert_includes content, "[Product Link](https://www.amazon.com/dp/B08N5WRWNW)"
@@ -203,7 +204,7 @@ class TestGetPageAsMarkdown < TestBase
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
     # ReverseMarkdown uses dashes for lists, not asterisks
     assert_includes content, "- Item 1"
@@ -259,7 +260,7 @@ class TestGetPageAsMarkdown < TestBase
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
     # ReverseMarkdown converts tables to pipe-separated format
     assert_includes content, "| Name | Age |"
@@ -406,8 +407,9 @@ class TestGetPageAsMarkdown < TestBase
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
+
     assert_includes content, "# Small Section"
     assert_includes content, "This is a small amount of content"
 
@@ -448,18 +450,18 @@ class TestGetPageAsMarkdown < TestBase
                               })
 
     markdown = parse_tool_result(result)
-    
+
     # Should return structured response
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
     # Should have proper spacing between span contents
     refute_includes content, "Hello, PariAccount"
     assert_includes content, "Hello, Pari"
     assert_includes content, "Account for Schacht Family LLC"
-    
+
     # Test divs get proper line breaks
     result = make_mcp_request("tools/call", {
                                 name: "get_page_as_markdown",
@@ -467,12 +469,12 @@ class TestGetPageAsMarkdown < TestBase
                               })
 
     markdown = parse_tool_result(result)
-    
+
     # Should return structured response
     assert_kind_of Hash, markdown
     assert_equal "success", markdown["status"]
     assert_kind_of String, markdown["result"]
-    
+
     content = markdown["result"]
     # Divs should be on separate lines
     refute_includes content, "First lineSecond line"

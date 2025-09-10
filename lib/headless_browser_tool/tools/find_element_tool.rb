@@ -75,4 +75,3 @@ module HeadlessBrowserTool
     end
   end
 end
-

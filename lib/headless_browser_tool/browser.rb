@@ -293,7 +293,10 @@ module HeadlessBrowserTool
         # Convert to markdown
         md = ReverseMarkdown.convert(processed_html, unknown_tags: :bypass)
 
-        # Return just the markdown string
+        # Clean up excessive whitespace - remove trailing spaces and collapse multiple blank lines
+        md = md.split("\n").map(&:rstrip).join("\n").gsub(/\n{3,}/, "\n\n")
+
+        # Return the cleaned markdown string
         md
       ensure
         # Restore original converters
@@ -542,7 +545,9 @@ module HeadlessBrowserTool
       # Save session state BEFORE closing the window
       # This ensures we capture the correct state
       begin
-        HeadlessBrowserTool::Logger.log.info "Checking if should save session: session_id=#{@session_id.inspect}, SessionPersistence defined=#{defined?(SessionPersistence)}"
+        HeadlessBrowserTool::Logger.log.info "Checking if should save session: " \
+                                             "session_id=#{@session_id.inspect}, " \
+                                             "SessionPersistence defined=#{defined?(SessionPersistence)}"
         if @session_id && defined?(SessionPersistence)
           HeadlessBrowserTool::Logger.log.info "Saving session before window close with session_id: #{@session_id}"
           SessionPersistence.save_session(@session_id, @session)

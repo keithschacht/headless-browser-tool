@@ -136,8 +136,9 @@ class TestFindElementTool < TestBase
     result = @tool.execute(selector: "input")
 
     assert_equal "success", result[:status]
-    
+
     lines = result[:result].split("\n")
+
     assert_equal 2, lines.length, "Result should have exactly 2 lines"
     assert_equal "Found element: input", lines[0], "First line should be summary"
     assert_match(/<input/, lines[1], "Second line should be opening HTML tag")
@@ -157,7 +158,7 @@ class TestFindElementTool < TestBase
     @browser.visit "data:text/html,#{html.gsub(/\s+/, " ").strip.gsub("#", "%23")}"
 
     result = @tool.execute(selector: "#non-existent")
-    
+
     assert_equal "error", result[:status]
     assert_equal "Unable to find element #non-existent", result[:error]
   end

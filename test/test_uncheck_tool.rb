@@ -298,4 +298,3 @@ class TestUncheckTool < Minitest::Test
     Thread.current[:hbt_session_id] = nil
   end
 end
-

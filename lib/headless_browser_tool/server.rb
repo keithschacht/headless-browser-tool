@@ -21,14 +21,14 @@ module HeadlessBrowserTool
     def initialize(app)
       @app = app
     end
-    
+
     def call(env)
       # Remove or normalize the HOST header to bypass Rack's built-in check
-      env['HTTP_HOST'] = 'localhost:4567' if env['HTTP_HOST'] && env['HTTP_HOST'].end_with?(':4567')
+      env["HTTP_HOST"] = "localhost:4567" if env["HTTP_HOST"]&.end_with?(":4567")
       @app.call(env)
     end
   end
-  
+
   class Server < Sinatra::Base
     class << self
       attr_accessor :browser_instance, :session_manager, :single_session_mode, :show_headers, :session_id, :be_human, :be_mostly_human,
@@ -78,17 +78,17 @@ module HeadlessBrowserTool
         require "puma"
         require "puma/configuration"
         require "puma/launcher"
-        
+
         # Disable automatic plugin discovery
         require "puma/plugin"
         Puma::Plugins.instance_variable_set(:@plugins, {})
-        
+
         # Wrap the app with our bypass middleware
         app = Rack::Builder.new do
           use HeadlessBrowserTool::HostAuthorizationBypass
           run Server
         end
-        
+
         puma_config = Puma::Configuration.new do |config|
           config.bind "tcp://0.0.0.0:#{options[:port]}"
           config.environment "production"

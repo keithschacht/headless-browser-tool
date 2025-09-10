@@ -332,4 +332,3 @@ class TestSaveSessionTool < TestBase
     assert_kind_of Hash, saved_session_data["window_size"]
   end
 end
-
