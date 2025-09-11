@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    headless_browser_tool (0.2.4)
+    headless_browser_tool (0.2.6)
       capybara
       fast-mcp-annotations (~> 1.5)
       json
