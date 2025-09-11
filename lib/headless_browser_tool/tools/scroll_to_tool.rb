@@ -19,10 +19,13 @@ module HeadlessBrowserTool
 
         # Use JavaScript to find and scroll to the element by selector
         # This works with both CDP and regular Selenium modes
+        # Use IIFE to avoid const redeclaration errors
         escaped_selector = selector.gsub("'", "\\\\'")
         browser.execute_script(
-          "const el = document.querySelector('#{escaped_selector}'); " \
-          "if (el) { el.scrollIntoView({ behavior: 'instant', block: 'start' }); }"
+          "(function() { " \
+          "var el = document.querySelector('#{escaped_selector}'); " \
+          "if (el) { el.scrollIntoView({ behavior: 'instant', block: 'start' }); }" \
+          "})()"
         )
 
         sleep 0.1
@@ -31,8 +34,10 @@ module HeadlessBrowserTool
 
         # Get element rect using selector instead of element reference
         element_rect = browser.evaluate_script(
-          "const el = document.querySelector('#{escaped_selector}'); " \
-          "return el ? el.getBoundingClientRect() : null;"
+          "(function() { " \
+          "var el = document.querySelector('#{escaped_selector}'); " \
+          "return el ? el.getBoundingClientRect() : null;" \
+          "})()"
         )
 
         {

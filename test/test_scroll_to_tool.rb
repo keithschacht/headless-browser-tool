@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "selenium-webdriver"
 
 class TestScrollToTool < Minitest::Test
   def setup
@@ -81,6 +82,21 @@ class TestScrollToTool < Minitest::Test
     assert_equal "##invalid[[[", result[:selector]
   end
 
+  def test_no_javascript_const_redeclaration_error
+    # This test ensures we don't use 'const' in our JavaScript which can cause
+    # redeclaration errors when the script is executed multiple times
+    tool = HeadlessBrowserTool::Tools::ScrollToTool.new
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
+    @mock_browser.should_raise_on_const = true
+
+    result = tool.execute(selector: "#some-element")
+
+    # Should succeed now that we're using var instead of const
+    assert_kind_of Hash, result
+    assert_equal "scrolled", result[:status]
+    assert_equal "#some-element", result[:selector]
+  end
+
   def test_generic_error
     tool = HeadlessBrowserTool::Tools::ScrollToTool.new
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
@@ -97,27 +113,39 @@ end
 
 # Mock browser for scroll tool testing
 class MockBrowserForScroll
-  attr_accessor :should_raise
+  attr_accessor :should_raise, :should_raise_on_const
   attr_reader :execute_script_calls, :evaluate_script_calls, :current_url
 
   def initialize
     @execute_script_calls = []
     @evaluate_script_calls = []
     @current_url = "http://example.com"
+    @should_raise_on_const = false
   end
 
   def session
     self
   end
 
+  def windows
+    ["window1"] # Non-empty array to indicate browser has windows
+  end
+
   def find(_selector)
     raise should_raise if should_raise
 
+    # Don't raise ElementNotFound if we're testing const error
     MockScrollElement.new
   end
 
   def execute_script(script, *args)
     @execute_script_calls << { script: script, args: args }
+
+    # Simulate JavaScript error when const is used in script
+    if @should_raise_on_const && script.include?("const ")
+      raise Selenium::WebDriver::Error::JavascriptError, "javascript error: Unexpected token 'const'\n  (Session info: chrome=139.0.7258.155)"
+    end
+
     nil
   end
 
