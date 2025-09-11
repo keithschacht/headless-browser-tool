@@ -156,6 +156,10 @@ class MockBrowserForErrors
     self # Return self as a mock session
   end
 
+  def windows
+    ["window1"] # Non-empty array to indicate browser has windows
+  end
+
   def title
     "Test Page"
   end
@@ -230,5 +234,13 @@ class MockElement
 
   def strip
     self
+  end
+
+  def click
+    # Get the browser instance to check if we should raise
+    browser = HeadlessBrowserTool::Server.instance_variable_get(:@browser_instance)
+    raise browser.should_raise_on_click if browser&.should_raise_on_click
+
+    true
   end
 end

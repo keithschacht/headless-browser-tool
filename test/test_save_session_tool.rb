@@ -155,14 +155,18 @@ class TestSaveSessionTool < TestBase
     parsed_result2 = parse_tool_result(result2)
 
     assert_equal "success", parsed_result2["status"]
-    assert_equal "https://www.google.com/", parsed_result2["current_url"]
+    # Google may add query parameters, so just check the base URL
+    assert parsed_result2["current_url"].start_with?("https://www.google.com/"), 
+           "Expected URL to start with https://www.google.com/, got #{parsed_result2["current_url"]}"
     refute_equal saved_at1, parsed_result2["saved_at"], "Timestamps should be different"
 
     # Verify the file was overwritten with new data
     returned_file_path = parsed_result2["file_path"]
     session_data = JSON.parse(File.read(returned_file_path))
 
-    assert_equal "https://www.google.com/", session_data["current_url"]
+    # Google may add query parameters, so just check the base URL
+    assert session_data["current_url"].start_with?("https://www.google.com/"),
+           "Expected URL to start with https://www.google.com/, got #{session_data["current_url"]}"
     assert_equal parsed_result2["saved_at"], session_data["saved_at"]
   end
 

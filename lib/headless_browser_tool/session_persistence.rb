@@ -73,30 +73,36 @@ module HeadlessBrowserTool
         HeadlessBrowserTool::Logger.log.info "  - LocalStorage items: #{state["local_storage"]&.length || 0}"
         HeadlessBrowserTool::Logger.log.info "  - SessionStorage items: #{state["session_storage"]&.length || 0}"
 
-        # Restore cookies if present
-        # Selenium/Chrome requires navigating to the domain before setting cookies
-        # But we want to avoid triggering new session creation
-        if state["cookies"] && !state["cookies"].empty? && state["current_url"]
+        # Navigate to the saved URL if present
+        if state["current_url"]
           begin
             uri = URI.parse(state["current_url"])
-            domain_url = "#{uri.scheme}://#{uri.host}"
+            # Include port if present
+            domain_url = if uri.port && ![80, 443].include?(uri.port)
+                           "#{uri.scheme}://#{uri.host}:#{uri.port}"
+                         else
+                           "#{uri.scheme}://#{uri.host}"
+                         end
 
             HeadlessBrowserTool::Logger.log.info "Step 1: Navigating to domain URL: #{domain_url}"
             # First navigate to the domain (this might set new cookies)
             capybara_session.visit(domain_url)
 
-            HeadlessBrowserTool::Logger.log.info "Step 2: Deleting all cookies that were just set"
-            # Delete all cookies that were just set
-            capybara_session.driver.browser.manage.delete_all_cookies
+            # Restore cookies if present
+            if state["cookies"] && !state["cookies"].empty?
+              HeadlessBrowserTool::Logger.log.info "Step 2: Deleting all cookies that were just set"
+              # Delete all cookies that were just set
+              capybara_session.driver.browser.manage.delete_all_cookies
 
-            HeadlessBrowserTool::Logger.log.info "Step 3: Restoring #{state["cookies"].length} saved cookies"
-            # Now add back our saved cookies
-            restore_cookies(capybara_session, state["cookies"])
+              HeadlessBrowserTool::Logger.log.info "Step 3: Restoring #{state["cookies"].length} saved cookies"
+              # Now add back our saved cookies
+              restore_cookies(capybara_session, state["cookies"])
 
-            # Log current cookies after restoration
-            current_cookies = capybara_session.driver.browser.manage.all_cookies
-            HeadlessBrowserTool::Logger.log.info "Cookies after restoration: #{current_cookies.length}"
-            HeadlessBrowserTool::Logger.log.info "Cookie names: #{current_cookies.map { |c| c[:name] }.join(", ")}"
+              # Log current cookies after restoration
+              current_cookies = capybara_session.driver.browser.manage.all_cookies
+              HeadlessBrowserTool::Logger.log.info "Cookies after restoration: #{current_cookies.length}"
+              HeadlessBrowserTool::Logger.log.info "Cookie names: #{current_cookies.map { |c| c[:name] }.join(", ")}"
+            end
 
             HeadlessBrowserTool::Logger.log.info "Step 4: Restoring localStorage and sessionStorage"
             # Restore storage BEFORE refresh so everything is in place
@@ -122,11 +128,9 @@ module HeadlessBrowserTool
 
             HeadlessBrowserTool::Logger.log.info "Session restoration completed successfully"
           rescue StandardError => e
-            HeadlessBrowserTool::Logger.log.info "ERROR during cookie restoration: #{e.message}"
+            HeadlessBrowserTool::Logger.log.info "ERROR during restoration: #{e.message}"
             HeadlessBrowserTool::Logger.log.info "Backtrace: #{e.backtrace.first(5).join("\n  ")}"
           end
-        else
-          HeadlessBrowserTool::Logger.log.info "Skipping cookie restoration - no cookies or URL in saved state"
         end
 
         # Restore window size - handle errors gracefully since window might be closed
