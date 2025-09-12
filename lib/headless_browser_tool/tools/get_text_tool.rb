@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base_tool"
+require_relative "get_page_as_markdown_tool"
 
 module HeadlessBrowserTool
   module Tools
@@ -13,7 +14,9 @@ module HeadlessBrowserTool
       end
 
       def execute(selector:)
-        browser.get_text(selector)
+        # Delegate to GetPageAsMarkdownTool with the required selector
+        markdown_tool = GetPageAsMarkdownTool.new
+        markdown_tool.execute(selector: selector)
       end
     end
   end
