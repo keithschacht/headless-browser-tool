@@ -5,8 +5,8 @@ require "reverse_markdown"
 
 module HeadlessBrowserTool
   module Tools
-    class GetPageAsMarkdownTool < BaseTool
-      tool_name "get_page_as_markdown"
+    class GetTextOfElementTool < BaseTool
+      tool_name "get_text_of_element"
       description "Convert page content or a specific element to readable Markdown format. " \
                   "Returns formatted text with headings, lists, links, and tables preserved. " \
                   "Use this when you need to read page content and decide where to navigate next."
@@ -16,7 +16,7 @@ module HeadlessBrowserTool
       end
 
       def execute(selector: nil)
-        markdown_content = browser.get_page_as_markdown(selector)
+        markdown_content = browser.get_text_of_element(selector)
 
         # If it's already an error hash, return it directly
         return markdown_content if markdown_content.is_a?(Hash) && markdown_content[:error]
@@ -33,8 +33,6 @@ module HeadlessBrowserTool
             original_size: markdown_content.bytesize,
             suggestions: [
               "Use a selector to target specific content (e.g., '#main-content', '.article-body')",
-              "Use search_page tool to find specific text instead",
-              "Use get_page_context tool for navigation metadata",
               "Break down the page analysis into smaller sections"
             ]
           }

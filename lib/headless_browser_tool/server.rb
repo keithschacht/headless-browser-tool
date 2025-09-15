@@ -199,7 +199,7 @@ module HeadlessBrowserTool
           }.to_json
 
         when "tools/list"
-          tools = HeadlessBrowserTool::Tools::ALL_TOOLS.map do |tool_class|
+          tools = HeadlessBrowserTool::Tools::AVAILABLE_TOOLS.map do |tool_class|
             {
               name: tool_class.tool_name,
               description: tool_class.description,

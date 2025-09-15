@@ -99,7 +99,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Get content - images should be stripped
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#content" }
                               })
 
@@ -143,7 +143,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Get content - Amazon tracking URLs should be cleaned
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#content" }
                               })
 
@@ -194,7 +194,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Get the element content
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#list-content" }
                               })
 
@@ -250,7 +250,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Get the element content
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#table-content" }
                               })
 
@@ -277,7 +277,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Try to get content of non-existent element
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#non-existent" }
                               })
 
@@ -308,7 +308,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Try to get content of non-existent selector (like the .sc-buy-box)
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: ".sc-buy-box" }
                               })
 
@@ -345,7 +345,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Try to get the large content
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: {} # Get entire page to trigger size limit
                               })
 
@@ -395,7 +395,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Get only the small section - should work normally
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#small-section" }
                               })
 
@@ -445,7 +445,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Test the link with spans
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#test-link" }
                               })
 
@@ -464,7 +464,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Test divs get proper line breaks
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: { selector: "#divs-test" }
                               })
 
@@ -508,7 +508,7 @@ class TestGetPageAsMarkdown < TestBase
 
     # Get the content
     result = make_mcp_request("tools/call", {
-                                name: "get_page_as_markdown",
+                                name: "get_text_of_element",
                                 arguments: {}
                               })
 

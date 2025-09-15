@@ -41,8 +41,8 @@ module HeadlessBrowserTool
       Server.session_id = session_id
       HeadlessBrowserTool::Logger.log.info "Session ID provided: #{session_id}" if session_id
 
-      # Register all browser tools
-      HeadlessBrowserTool::Tools::ALL_TOOLS.each do |tool_class|
+      # Register available browser tools (still allows ALL_TOOLS to work internally)
+      HeadlessBrowserTool::Tools::AVAILABLE_TOOLS.each do |tool_class|
         server.register_tool(tool_class)
       end
 

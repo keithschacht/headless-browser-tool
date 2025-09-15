@@ -196,7 +196,7 @@ module HeadlessBrowserTool
       end
     end
 
-    def get_page_as_markdown(selector = nil)
+    def get_text_of_element(selector = nil)
       # Define custom converter for cleaning Amazon tracking URLs
       clean_amazon_links = Class.new(ReverseMarkdown::Converters::Base) do
         def convert(node, state = {})
@@ -304,6 +304,9 @@ module HeadlessBrowserTool
         ReverseMarkdown::Converters.register :a, original_a_converter
       end
     end
+
+    # Alias for backward compatibility
+    alias_method :get_page_as_markdown, :get_text_of_element
 
     def get_attribute(selector, attribute_name)
       cdp_element_action(selector, :get_attribute, attribute_name) do

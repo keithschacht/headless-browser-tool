@@ -327,13 +327,9 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | `find_element` | Find single element | `selector` (required) | Element details with attributes |
 | `find_all` | Find all matching elements | `selector` (required) | `{elements: [{selector, tag_name, text, visible, attributes}]}` |
 | `find_elements_containing_text` | Find elements with text | `text` (required), `case_sensitive`, `visible_only` | `{elements: [{selector, xpath, tag, text, clickable}]}` |
-| `get_text` | Get element text | `selector` (required) | Markdown string |
-| `get_page_as_markdown` | Convert page/element to markdown | `selector` (optional) | Markdown string |
+| `get_text_of_element` | Convert page/element to markdown | `selector` (optional) | Markdown string |
 | `get_attribute` | Get element attribute | `selector`, `attribute` (required) | Attribute value |
 | `get_value` | Get input value | `selector` (required) | Input value |
-| `is_visible` | Check element visibility | `selector` (required) | Boolean |
-| `has_element` | Check element exists | `selector` (required), `wait` | Boolean |
-| `has_text` | Check text exists | `text` (required), `wait` | Boolean |
 
 #### Form Interaction Tools
 
@@ -395,7 +391,6 @@ All tools are available through the MCP protocol. Here's a complete reference:
 
 | Tool | Description | Returns |
 |------|-------------|---------|
-| `get_session_info` | Get session information | Session details |
 | `save_session` | Save the browser's current session info (e.g. cookies) to disk to later reuse | Session save status with details |
 
 ### Tool Response Structure
