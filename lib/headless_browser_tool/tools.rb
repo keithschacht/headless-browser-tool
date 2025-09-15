@@ -117,7 +117,10 @@ module HeadlessBrowserTool
       SearchPageTool,
       SearchSourceTool,
       GetSessionInfoTool,
-      GetWindowHandlesTool
+      GetWindowHandlesTool,
+      ResizeWindowTool,
+      VisualDiffTool,
+      GoForwardTool
     ].freeze
 
     AVAILABLE_TOOLS = (ALL_TOOLS - DISABLED_TOOLS).freeze

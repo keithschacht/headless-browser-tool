@@ -307,7 +307,6 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | `visit` | Navigate to a URL | `url` (required) | `{url, current_url, title, status}` |
 | `refresh` | Reload the current page | None | `{url, title, changed, status}` |
 | `go_back` | Navigate back in browser history | None | `{navigation: {from, to, title, navigated}, status}` |
-| `go_forward` | Navigate forward in browser history | None | `{navigation: {from, to, title, navigated}, status}` |
 | `scroll_to` | Scroll to an element on the page | `selector` (required) | `{selector, element, scroll, element_position, status}` |
 
 #### Element Interaction Tools
@@ -374,7 +373,6 @@ All tools are available through the MCP protocol. Here's a complete reference:
 |------|-------------|------------|-------------|
 | `screenshot` | Take screenshot | `filename`, `highlight_selectors`, `annotate` | `{file_path, filename, file_size, timestamp, url, title}` |
 | `save_page` | Save HTML to file | `file_path` (required) | `{file_path, file_size, timestamp, url, title, status}` |
-| `visual_diff` | Summarize what changed on the page since last call to this tool | |
 
 #### Window Management Tools
 
@@ -385,7 +383,6 @@ All tools are available through the MCP protocol. Here's a complete reference:
 | `close_window` | Close window/tab | `window_handle` (required) | `{closed_window, was_current, remaining_windows, current_window}` |
 | `get_window_handles` | Get all window handles | None | `{current_window, windows: [{handle, index, is_current}], total_windows}` |
 | `maximize_window` | Maximize window | None | `{size_before: {width, height}, size_after: {width, height}, status}` |
-| `resize_window` | Resize window | `width`, `height` (required) | `{requested_size, size_before, size_after, status}` |
 
 #### Session Management Tools
 
