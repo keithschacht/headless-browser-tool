@@ -314,7 +314,7 @@ All tools are available through the MCP protocol. Here's a complete reference:
 
 | Tool | Description | Parameters | Returns |
 |------|-------------|------------|----------|
-| `click` | Click an element. Use `index` for multiple matches | `selector` (required), `index` (optional, 0-based) | `{selector, element, navigation, status, index}` |
+| `click` | Click an element by text or CSS selector. Automatically tries multiple strategies to find buttons, links, or any clickable element | `text_or_selector` (required), `index` (optional, for ambiguous selectors) | `{text_or_selector, element, navigation, status, strategy, index}` |
 | `right_click` | Right-click an element | `selector` (required) | `{selector, element, status}` |
 | `double_click` | Double-click an element | `selector` (required) | `{selector, element, status}` |
 | `hover` | Hover mouse over element | `selector` (required) | `{selector, element, status}` |
@@ -484,14 +484,22 @@ curl -X POST http://localhost:4567/ \
                               "regex": true,
                               "highlight": true}}}'
 
-# Click the third button when selector matches multiple elements
+# Click the third button when text or selector matches multiple elements
 curl -X POST http://localhost:4567/ \
   -H "Content-Type: application/json" \
   -H "X-Session-ID: alice" \
   -d '{"jsonrpc": "2.0", "id": 4, "method": "tools/call",
        "params": {"name": "click",
-                  "arguments": {"selector": ".submit-button",
+                  "arguments": {"text_or_selector": ".submit-button",
                               "index": 2}}}'
+
+# Click by button text (will automatically find the button)
+curl -X POST http://localhost:4567/ \
+  -H "Content-Type: application/json" \
+  -H "X-Session-ID: alice" \
+  -d '{"jsonrpc": "2.0", "id": 5, "method": "tools/call",
+       "params": {"name": "click",
+                  "arguments": {"text_or_selector": "Add to Cart"}}}'
 ```
 
 ### Environment Variables

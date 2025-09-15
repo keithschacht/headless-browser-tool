@@ -37,11 +37,11 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: "#placeOrder")
+    result = tool.execute(text_or_selector: "#placeOrder")
 
     assert_equal "error", result[:status]
-    assert_equal "Ambiguous selector - found 2 elements matching: #placeOrder", result[:error]
-    assert_equal "#placeOrder", result[:selector]
+    assert_equal "Ambiguous text or selector - found 2 elements matching: #placeOrder", result[:error]
+    assert_equal "#placeOrder", result[:text_or_selector]
   ensure
     HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
@@ -64,10 +64,10 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: "#placeOrder", index: 2)
+    result = tool.execute(text_or_selector: "#placeOrder", index: 2)
 
     assert_equal "success", result[:status], "Should have status: 'success'"
-    assert_equal "#placeOrder", result[:selector]
+    assert_equal "#placeOrder", result[:text_or_selector]
     assert_equal 2, result[:index]
     assert_equal "button", result[:element][:tag_name]
     assert_equal "Third Button", result[:element][:text]
@@ -92,11 +92,11 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: "#submit", index: 2)
+    result = tool.execute(text_or_selector: "#submit", index: 2)
 
     assert_equal "error", result[:status]
     assert_equal "Invalid index 2 for 1 elements matching: #submit", result[:error]
-    assert_equal "#submit", result[:selector]
+    assert_equal "#submit", result[:text_or_selector]
     assert_equal 2, result[:index]
   ensure
     HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
@@ -118,10 +118,10 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: "#submit", index: 0)
+    result = tool.execute(text_or_selector: "#submit", index: 0)
 
     assert_equal "success", result[:status], "Should have status: 'success'"
-    assert_equal "#submit", result[:selector]
+    assert_equal "#submit", result[:text_or_selector]
     assert_nil result[:index] # Index should not be included when only one element
     assert_equal "button", result[:element][:tag_name]
     assert_equal "Submit", result[:element][:text]
@@ -146,11 +146,11 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: ".btn", index: 1)
+    result = tool.execute(text_or_selector: ".btn", index: 1)
 
     assert_equal "error", result[:status]
     assert_equal "Invalid index 1 for 1 elements matching: .btn", result[:error]
-    assert_equal ".btn", result[:selector]
+    assert_equal ".btn", result[:text_or_selector]
     assert_equal 1, result[:index]
   ensure
     HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
@@ -173,11 +173,11 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: ".btn", index: 5)
+    result = tool.execute(text_or_selector: ".btn", index: 5)
 
     assert_equal "error", result[:status]
     assert_equal "Invalid index 5 for 2 elements matching: .btn", result[:error]
-    assert_equal ".btn", result[:selector]
+    assert_equal ".btn", result[:text_or_selector]
     assert_equal 5, result[:index]
   ensure
     HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
@@ -200,7 +200,7 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: ".btn", index: -1)
+    result = tool.execute(text_or_selector: ".btn", index: -1)
 
     assert_equal "error", result[:status]
     assert_equal "Invalid index -1 for 2 elements matching: .btn", result[:error]
@@ -225,10 +225,10 @@ class TestClickTool < Minitest::Test
 
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
 
-    result = tool.execute(selector: "a.link")
+    result = tool.execute(text_or_selector: "a.link")
 
     assert_equal "success", result[:status], "Should have status: 'success'"
-    assert_equal "a.link", result[:selector]
+    assert_equal "a.link", result[:text_or_selector]
     assert_nil result[:index]
     assert_equal "a", result[:element][:tag_name]
     assert_equal "Click Me", result[:element][:text]
@@ -239,16 +239,111 @@ class TestClickTool < Minitest::Test
     HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
   end
+
+  def test_click_by_button_text
+    # Test clicking by button text (not CSS selector)
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+
+    mock_browser = MockBrowserForClick.new
+    mock_browser.should_find_button = MockClickElement.new(text: "Submit", tag_name: "button", should_be_clicked: true)
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
+
+    result = tool.execute(text_or_selector: "Submit")
+
+    assert_equal "success", result[:status]
+    assert_equal "button_text", result[:strategy]
+    assert_equal "button", result[:element][:tag_name]
+    assert_equal "Submit", result[:element][:text]
+  ensure
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
+  end
+
+  def test_click_by_link_text
+    # Test clicking by link text (not CSS selector)
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+
+    mock_browser = MockBrowserForClick.new
+    mock_browser.should_find_link = MockClickElement.new(text: "Learn More", tag_name: "a", should_be_clicked: true)
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
+
+    result = tool.execute(text_or_selector: "Learn More")
+
+    assert_equal "success", result[:status]
+    assert_equal "link_text", result[:strategy]
+    assert_equal "a", result[:element][:tag_name]
+    assert_equal "Learn More", result[:element][:text]
+  ensure
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
+  end
+
+  def test_click_text_in_clickable_element
+    # Test clicking text found in a clickable element (not button or link)
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+
+    mock_browser = MockBrowserForClick.new
+    # Return element when searching for clickable elements with text
+    mock_browser.text_search_result = [
+      MockClickElement.new(text: "Add to Cart", tag_name: "div", attributes: { role: "button" }, should_be_clicked: true)
+    ]
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
+
+    result = tool.execute(text_or_selector: "Add to Cart")
+
+    assert_equal "success", result[:status]
+    assert_equal "text_in_clickable", result[:strategy]
+    assert_equal "div", result[:element][:tag_name]
+    assert_equal "Add to Cart", result[:element][:text]
+  ensure
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
+  end
+
+  def test_strategy_preference_order
+    # Test that button_text is preferred over link_text when both exist
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+
+    mock_browser = MockBrowserForClick.new
+    # Both button and link exist with same text
+    mock_browser.should_find_button = MockClickElement.new(text: "Click Me", tag_name: "button", should_be_clicked: true)
+    mock_browser.should_find_link = MockClickElement.new(text: "Click Me", tag_name: "a")
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
+
+    result = tool.execute(text_or_selector: "Click Me")
+
+    assert_equal "success", result[:status]
+    assert_equal "button_text", result[:strategy], "Should prefer button over link"
+    assert_equal "button", result[:element][:tag_name]
+  ensure
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
+  end
 end
 
 # Mock browser for click tests
 class MockBrowserForClick
-  attr_accessor :elements_to_return, :navigation_change
+  attr_accessor :elements_to_return, :navigation_change, :should_find_button, :should_find_link, :text_search_result
   attr_reader :current_url_calls
 
   def initialize
     @current_url_calls = 0
     @navigation_change = false
+    @should_find_button = nil
+    @should_find_link = nil
+    @text_search_result = []
   end
 
   def session
@@ -268,8 +363,29 @@ class MockBrowserForClick
     end
   end
 
-  def all(_selector, **_options)
-    elements_to_return || []
+  def all(_selector, **options)
+    # If it's being called with text option, return text search results
+    if options[:text]
+      @text_search_result || []
+    else
+      elements_to_return || []
+    end
+  end
+
+  def find_button(_text_or_selector)
+    return @should_find_button if @should_find_button
+
+    raise Capybara::ElementNotFound
+  end
+
+  def find_link(_text_or_selector)
+    return @should_find_link if @should_find_link
+
+    raise Capybara::ElementNotFound
+  end
+
+  def find(_selector)
+    raise Capybara::ElementNotFound
   end
 end
 
@@ -283,6 +399,7 @@ class MockClickElement
     @text = attrs[:text] || "Mock Element"
     @should_be_clicked = attrs[:should_be_clicked] || false
     @was_clicked = false
+    @attributes = attrs[:attributes] || {}
   end
 
   def disabled?
@@ -291,5 +408,13 @@ class MockClickElement
 
   def click
     @was_clicked = true
+  end
+
+  def [](attribute)
+    @attributes[attribute]
+  end
+
+  def strip
+    @text
   end
 end

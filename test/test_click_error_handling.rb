@@ -25,12 +25,12 @@ class TestClickErrorHandling < Minitest::Test
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
     @mock_browser.should_return_empty = true
 
-    result = tool.execute(selector: "#non-existent")
+    result = tool.execute(text_or_selector: "#non-existent")
 
     assert_kind_of Hash, result
     assert_equal "error", result[:status]
-    assert_match(/Unable to find element/i, result[:error])
-    assert_equal "#non-existent", result[:selector]
+    assert_match(/Unable to find.*element/i, result[:error])
+    assert_equal "#non-existent", result[:text_or_selector]
   end
 
   def test_click_ambiguous_selector
@@ -40,12 +40,12 @@ class TestClickErrorHandling < Minitest::Test
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
     @mock_browser.should_return_multiple = true
 
-    result = tool.execute(selector: ".duplicate")
+    result = tool.execute(text_or_selector: ".duplicate")
 
     assert_kind_of Hash, result
     assert_equal "error", result[:status]
-    assert_match(/Ambiguous selector.*found 3 elements/i, result[:error])
-    assert_equal ".duplicate", result[:selector]
+    assert_match(/Ambiguous.*found 3 elements/i, result[:error])
+    assert_equal ".duplicate", result[:text_or_selector]
   end
 
   def test_click_button_not_found
@@ -72,12 +72,12 @@ class TestClickErrorHandling < Minitest::Test
     @mock_browser.elements_to_return = [mock_element]
     @mock_browser.should_raise_on_click = Selenium::WebDriver::Error::ElementNotInteractableError.new("element not interactable")
 
-    result = tool.execute(selector: "#disabled-btn")
+    result = tool.execute(text_or_selector: "#disabled-btn")
 
     assert_kind_of Hash, result
     assert_equal "error", result[:status]
     assert_match(/not interactable.*may be hidden or disabled/i, result[:error])
-    assert_equal "#disabled-btn", result[:selector]
+    assert_equal "#disabled-btn", result[:text_or_selector]
   end
 
   def test_click_invalid_selector
@@ -87,12 +87,12 @@ class TestClickErrorHandling < Minitest::Test
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
     @mock_browser.should_raise = Selenium::WebDriver::Error::InvalidSelectorError.new("invalid selector")
 
-    result = tool.execute(selector: "##invalid[[[")
+    result = tool.execute(text_or_selector: "##invalid[[[")
 
     assert_kind_of Hash, result
     assert_equal "error", result[:status]
     assert_match(/Invalid CSS selector/i, result[:error])
-    assert_equal "##invalid[[[", result[:selector]
+    assert_equal "##invalid[[[", result[:text_or_selector]
   end
 
   def test_click_generic_error
@@ -102,12 +102,12 @@ class TestClickErrorHandling < Minitest::Test
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, @mock_browser)
     @mock_browser.should_raise = StandardError.new("Something went wrong")
 
-    result = tool.execute(selector: "#some-element")
+    result = tool.execute(text_or_selector: "#some-element")
 
     assert_kind_of Hash, result
     assert_equal "error", result[:status]
     assert_match(/Failed to click element.*Something went wrong/i, result[:error])
-    assert_equal "#some-element", result[:selector]
+    assert_equal "#some-element", result[:text_or_selector]
   end
 
   def test_click_button_not_interactable
@@ -164,8 +164,11 @@ class MockBrowserForErrors
     "Test Page"
   end
 
-  def all(_selector, **_options)
+  def all(_selector, **options)
     raise should_raise if should_raise
+
+    # For text searches, return empty to force fallback
+    return [] if options[:text]
 
     return [] if should_return_empty
 
@@ -185,6 +188,9 @@ class MockBrowserForErrors
   def find(_selector)
     raise should_raise if should_raise
 
+    # If we're returning empty, also fail find
+    raise Capybara::ElementNotFound if should_return_empty
+
     elements_to_return.first || MockElement.new
   end
 
@@ -192,7 +198,14 @@ class MockBrowserForErrors
     raise should_raise if should_raise
     raise should_raise_on_find_button if should_raise_on_find_button
 
+    # If we're returning empty, also fail find_button
+    raise Capybara::ElementNotFound if should_return_empty
+
     MockElement.new(tag_name: "button", text: text_or_selector)
+  end
+
+  def find_link(_text_or_selector)
+    raise Capybara::ElementNotFound
   end
 
   def click(_selector)
