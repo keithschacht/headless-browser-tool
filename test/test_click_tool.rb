@@ -331,6 +331,106 @@ class TestClickTool < Minitest::Test
     HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
     HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
   end
+
+  def test_multiple_exact_text_matches_with_partial_matches
+    # Test handling of multiple exact matches mixed with partial matches
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+
+    mock_browser = MockBrowserForClick.new
+    # Return multiple elements: 2 exact "Submit" and 2 partial matches
+    mock_browser.text_search_result = [
+      MockClickElement.new(text: "Submit", tag_name: "button"),
+      MockClickElement.new(text: "Submit Form", tag_name: "button"),
+      MockClickElement.new(text: "Submit", tag_name: "button"),
+      MockClickElement.new(text: "Submit Order", tag_name: "button")
+    ]
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
+
+    result = tool.execute(text_or_selector: "Submit")
+
+    # Should return error with all matches listed
+    assert_equal "error", result[:status]
+    assert_match(/Found 4 clickable elements/i, result[:error])
+    assert_equal 4, result[:elements].size
+    
+    # Verify the elements are listed with correct indices
+    assert_equal 0, result[:elements][0][:index]
+    assert_equal "Submit", result[:elements][0][:text]
+    assert_equal 1, result[:elements][1][:index]
+    assert_equal "Submit Form", result[:elements][1][:text]
+    assert_equal 2, result[:elements][2][:index]
+    assert_equal "Submit", result[:elements][2][:text]
+    assert_equal 3, result[:elements][3][:index]
+    assert_equal "Submit Order", result[:elements][3][:text]
+  ensure
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
+  end
+
+  def test_full_html_tag_in_error_listings
+    # Test that error messages include full HTML opening tags for better differentiation
+    tool = HeadlessBrowserTool::Tools::ClickTool.new
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, true)
+
+    mock_browser = MockBrowserForClick.new
+    # Return multiple similar elements with different attributes
+    mock_browser.text_search_result = [
+      MockClickElement.new(
+        text: "Printable Order Summary", 
+        tag_name: "a",
+        attributes: { 
+          class: "a-link-normal", 
+          href: "/gp/css/summary/print.html?orderID=113-6370329-4670655&ref=ab_ppx_yo_dt_b_invoice"
+        }
+      ),
+      MockClickElement.new(
+        text: "Printable Order Summary", 
+        tag_name: "a",
+        attributes: { 
+          class: "a-link-emphasis", 
+          href: "/gp/css/summary/print.html?orderID=113-1234567-8901234&ref=ab_ppx_yo_dt_b_invoice",
+          target: "_blank"
+        }
+      ),
+      MockClickElement.new(
+        text: "Printable Order Details", 
+        tag_name: "button",
+        attributes: { 
+          class: "btn btn-primary",
+          id: "print-btn",
+          onclick: "printOrder()"
+        }
+      )
+    ]
+
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, mock_browser)
+
+    result = tool.execute(text_or_selector: "Printable Order")
+
+    # Should return error with all matches listed
+    assert_equal "error", result[:status]
+    assert_equal 3, result[:elements].size
+    
+    # Verify the elements include full HTML opening tags
+    assert_equal '<a class="a-link-normal" href="/gp/css/summary/print.html?orderID=113-6370329-4670655&ref=ab_ppx_yo_dt_b_invoice">', 
+                 result[:elements][0][:html_tag]
+    assert_equal '<a class="a-link-emphasis" href="/gp/css/summary/print.html?orderID=113-1234567-8901234&ref=ab_ppx_yo_dt_b_invoice" target="_blank">', 
+                 result[:elements][1][:html_tag]
+    assert_equal '<button class="btn btn-primary" id="print-btn" onclick="printOrder()">', 
+                 result[:elements][2][:html_tag]
+    
+    # Original fields should still be present
+    assert_equal "Printable Order Summary", result[:elements][0][:text]
+    assert_equal "Printable Order Summary", result[:elements][1][:text]
+    assert_equal "Printable Order Details", result[:elements][2][:text]
+  ensure
+    HeadlessBrowserTool::Server.instance_variable_set(:@single_session_mode, nil)
+    HeadlessBrowserTool::Server.instance_variable_set(:@browser_instance, nil)
+  end
 end
 
 # Mock browser for click tests
@@ -416,5 +516,21 @@ class MockClickElement
 
   def strip
     @text
+  end
+
+  def native
+    # Mock native element that responds to attribute
+    self
+  end
+
+  def attribute(name)
+    # Return all attributes as HTML string when 'outerHTML' is requested
+    if name == "outerHTML"
+      attrs_str = @attributes.map { |k, v| %{#{k}="#{v}"} }.join(" ")
+      attrs_str = " " + attrs_str unless attrs_str.empty?
+      "<#{@tag_name}#{attrs_str}>#{@text}</#{@tag_name}>"
+    else
+      @attributes[name.to_sym]
+    end
   end
 end

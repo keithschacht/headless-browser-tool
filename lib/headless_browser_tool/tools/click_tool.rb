@@ -248,18 +248,61 @@ module HeadlessBrowserTool
 
         return { element: nil, strategy: nil } unless index.nil?
 
-        # Try to be smart about it - prefer exact text match
-        exact_match = elements.find { |e| e.text.strip == text_or_selector }
-        if exact_match
-          { element: exact_match, strategy: "exact_text_match" }
+        # Check if there are multiple exact matches
+        exact_matches = elements.select { |e| e.text.strip == text_or_selector }
+        
+        if exact_matches.size == 1
+          # Only one exact match among multiple partial matches - use it
+          { element: exact_matches.first, strategy: "exact_text_match" }
+        elsif exact_matches.size > 1
+          # Multiple exact matches - require index
+          {
+            error: true,
+            status: "error",
+            message: "Found #{elements.size} clickable elements containing '#{text_or_selector}' (#{exact_matches.size} exact matches). Please specify an index.",
+            text_or_selector: text_or_selector,
+            elements: elements.map.with_index do |e, i| 
+              { 
+                index: i, 
+                text: e.text.strip, 
+                tag: e.tag_name,
+                html_tag: extract_opening_tag(e)
+              }
+            end
+          }
         else
+          # No exact matches, multiple partial matches - require index
           {
             error: true,
             status: "error",
             message: "Found #{elements.size} clickable elements containing '#{text_or_selector}'. Please specify an index.",
             text_or_selector: text_or_selector,
-            elements: elements.map.with_index { |e, i| { index: i, text: e.text.strip, tag: e.tag_name } }
+            elements: elements.map.with_index do |e, i| 
+              { 
+                index: i, 
+                text: e.text.strip, 
+                tag: e.tag_name,
+                html_tag: extract_opening_tag(e)
+              }
+            end
           }
+        end
+      end
+
+      def extract_opening_tag(element)
+        # Get the outer HTML and extract just the opening tag
+        begin
+          outer_html = element.native.attribute("outerHTML")
+          # Match the opening tag (everything up to the first >)
+          if outer_html && (match = outer_html.match(/^<[^>]+>/))
+            match[0]
+          else
+            # Fallback to basic tag if we can't get outerHTML
+            "<#{element.tag_name}>"
+          end
+        rescue StandardError
+          # If anything goes wrong, just return the basic tag
+          "<#{element.tag_name}>"
         end
       end
     end
