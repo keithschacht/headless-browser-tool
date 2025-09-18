@@ -33,13 +33,13 @@ class TestGetTextTool < Minitest::Test
     # Create the GetTextTool
     get_text_tool = HeadlessBrowserTool::Tools::GetTextTool.new
 
-    # Create a mock GetPageAsMarkdownTool
+    # Create a mock GetTextOfElementTool
     mock_markdown_tool = Minitest::Mock.new
     expected_result = { status: "success", result: "Test content" }
     mock_markdown_tool.expect(:execute, expected_result, selector: "#test-selector")
 
-    # Stub the GetPageAsMarkdownTool instantiation
-    HeadlessBrowserTool::Tools::GetPageAsMarkdownTool.stub :new, mock_markdown_tool do
+    # Stub the GetTextOfElementTool instantiation
+    HeadlessBrowserTool::Tools::GetTextOfElementTool.stub :new, mock_markdown_tool do
       result = get_text_tool.execute(selector: "#test-selector")
 
       assert_equal expected_result, result

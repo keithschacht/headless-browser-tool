@@ -306,7 +306,7 @@ module HeadlessBrowserTool
     end
 
     # Alias for backward compatibility
-    alias_method :get_page_as_markdown, :get_text_of_element
+    alias get_page_as_markdown get_text_of_element
 
     def get_attribute(selector, attribute_name)
       cdp_element_action(selector, :get_attribute, attribute_name) do

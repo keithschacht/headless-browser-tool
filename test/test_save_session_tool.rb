@@ -156,7 +156,7 @@ class TestSaveSessionTool < TestBase
 
     assert_equal "success", parsed_result2["status"]
     # Google may add query parameters, so just check the base URL
-    assert parsed_result2["current_url"].start_with?("https://www.google.com/"), 
+    assert parsed_result2["current_url"].start_with?("https://www.google.com/"),
            "Expected URL to start with https://www.google.com/, got #{parsed_result2["current_url"]}"
     refute_equal saved_at1, parsed_result2["saved_at"], "Timestamps should be different"
 

@@ -355,7 +355,7 @@ class TestClickTool < Minitest::Test
     assert_equal "error", result[:status]
     assert_match(/Found 4 clickable elements/i, result[:error])
     assert_equal 4, result[:elements].size
-    
+
     # Verify the elements are listed with correct indices
     assert_equal 0, result[:elements][0][:index]
     assert_equal "Submit", result[:elements][0][:text]
@@ -380,26 +380,26 @@ class TestClickTool < Minitest::Test
     # Return multiple similar elements with different attributes
     mock_browser.text_search_result = [
       MockClickElement.new(
-        text: "Printable Order Summary", 
+        text: "Printable Order Summary",
         tag_name: "a",
-        attributes: { 
-          class: "a-link-normal", 
+        attributes: {
+          class: "a-link-normal",
           href: "/gp/css/summary/print.html?orderID=113-6370329-4670655&ref=ab_ppx_yo_dt_b_invoice"
         }
       ),
       MockClickElement.new(
-        text: "Printable Order Summary", 
+        text: "Printable Order Summary",
         tag_name: "a",
-        attributes: { 
-          class: "a-link-emphasis", 
+        attributes: {
+          class: "a-link-emphasis",
           href: "/gp/css/summary/print.html?orderID=113-1234567-8901234&ref=ab_ppx_yo_dt_b_invoice",
           target: "_blank"
         }
       ),
       MockClickElement.new(
-        text: "Printable Order Details", 
+        text: "Printable Order Details",
         tag_name: "button",
-        attributes: { 
+        attributes: {
           class: "btn btn-primary",
           id: "print-btn",
           onclick: "printOrder()"
@@ -414,15 +414,18 @@ class TestClickTool < Minitest::Test
     # Should return error with all matches listed
     assert_equal "error", result[:status]
     assert_equal 3, result[:elements].size
-    
+
     # Verify the elements include full HTML opening tags
-    assert_equal '<a class="a-link-normal" href="/gp/css/summary/print.html?orderID=113-6370329-4670655&ref=ab_ppx_yo_dt_b_invoice">', 
+    assert_equal '<a class="a-link-normal" href="/gp/css/summary/print.html?orderID=113-6370329-4670655&ref=ab_ppx_yo_dt_b_invoice">',
                  result[:elements][0][:html_tag]
-    assert_equal '<a class="a-link-emphasis" href="/gp/css/summary/print.html?orderID=113-1234567-8901234&ref=ab_ppx_yo_dt_b_invoice" target="_blank">', 
-                 result[:elements][1][:html_tag]
-    assert_equal '<button class="btn btn-primary" id="print-btn" onclick="printOrder()">', 
+    expected_tag = '<a class="a-link-emphasis" ' \
+                   'href="/gp/css/summary/print.html?orderID=113-1234567-8901234&ref=ab_ppx_yo_dt_b_invoice" ' \
+                   'target="_blank">'
+
+    assert_equal expected_tag, result[:elements][1][:html_tag]
+    assert_equal '<button class="btn btn-primary" id="print-btn" onclick="printOrder()">',
                  result[:elements][2][:html_tag]
-    
+
     # Original fields should still be present
     assert_equal "Printable Order Summary", result[:elements][0][:text]
     assert_equal "Printable Order Summary", result[:elements][1][:text]
@@ -526,8 +529,8 @@ class MockClickElement
   def attribute(name)
     # Return all attributes as HTML string when 'outerHTML' is requested
     if name == "outerHTML"
-      attrs_str = @attributes.map { |k, v| %{#{k}="#{v}"} }.join(" ")
-      attrs_str = " " + attrs_str unless attrs_str.empty?
+      attrs_str = @attributes.map { |k, v| %(#{k}="#{v}") }.join(" ")
+      attrs_str = " #{attrs_str}" unless attrs_str.empty?
       "<#{@tag_name}#{attrs_str}>#{@text}</#{@tag_name}>"
     else
       @attributes[name.to_sym]

@@ -64,9 +64,9 @@ class TestMaximizeWindowTool < TestBase
                                 name: "visit",
                                 arguments: { url: create_test_page_url }
                               })
-    
+
     assert result["result"], "Expected result but got: #{result.inspect}"
-    
+
     # Now test maximize_window
     result = make_mcp_request("tools/call", {
                                 name: "maximize_window",
@@ -75,35 +75,41 @@ class TestMaximizeWindowTool < TestBase
 
     assert result["result"], "Expected result but got: #{result.inspect}"
     content = parse_tool_result(result)
-    
+
     assert_equal "success", content["status"], "Expected success status but got: #{content.inspect}"
     assert content["size_before"], "Expected size_before but got: #{content.inspect}"
     assert content["size_after"], "Expected size_after but got: #{content.inspect}"
     assert content["window_handle"], "Expected window_handle but got: #{content.inspect}"
-    
+
     # Verify size_before and size_after have proper structure
-    ["size_before", "size_after"].each do |key|
+    %w[size_before size_after].each do |key|
       assert content[key]["width"], "Expected #{key} to have width"
       assert content[key]["height"], "Expected #{key} to have height"
     end
-    
+
     # Window should be bigger after maximizing (or at least same size)
-    assert content["size_after"]["width"] >= content["size_before"]["width"], 
-           "Window width should be same or larger after maximize"
-    assert content["size_after"]["height"] >= content["size_before"]["height"],
-           "Window height should be same or larger after maximize"
+    assert_operator content["size_after"]["width"], :>=, content["size_before"]["width"], "Window width should be same or larger after maximize"
+    assert_operator content["size_after"]["height"], :>=, content["size_before"]["height"], "Window height should be same or larger after maximize"
   end
 
   private
 
-  def make_mcp_request(path, params)
-    uri = URI("#{@base_url}/#{path}")
-    http = Net::HTTP.new(uri.host, uri.port)
+  def make_mcp_request(method, params = {})
+    uri = URI("#{@base_url}/mcp")
     request = Net::HTTP::Post.new(uri)
     request["Content-Type"] = "application/json"
-    request.body = JSON.generate(params)
+    request["X-Session-ID"] = @session_id
+    request.body = {
+      jsonrpc: "2.0",
+      method: method,
+      params: params,
+      id: rand(10_000)
+    }.to_json
 
-    response = http.request(request)
+    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+      http.request(request)
+    end
+
     JSON.parse(response.body)
   end
 
