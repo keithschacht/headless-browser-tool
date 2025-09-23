@@ -107,7 +107,7 @@ module HeadlessBrowserTool
             # Check if browser has any windows - just checking current_url isn't enough
             # because a session can exist with no windows after manual close
             if browser_instance.session.windows.empty?
-              HeadlessBrowserTool::Logger.log.info "Browser has no windows, creating new instance..."
+              HeadlessBrowserTool::Logger.log&.info "Browser has no windows, creating new instance..."
               self.browser_instance = nil
             else
               # Browser has windows, check if it's actually alive
@@ -116,18 +116,32 @@ module HeadlessBrowserTool
             end
           rescue StandardError => e
             # ANY error means the browser is dead - could be closed window, terminated session, etc.
-            HeadlessBrowserTool::Logger.log.info "Browser unavailable (#{e.class}: #{e.message}), creating new instance..."
+            HeadlessBrowserTool::Logger.log&.info "Browser unavailable (#{e.class}: #{e.message}), creating new instance..."
             self.browser_instance = nil
           end
         end
 
-        HeadlessBrowserTool::Logger.log.info "Creating browser instance on first use..."
-        HeadlessBrowserTool::Logger.log.info "Current session_id: #{session_id.inspect}"
-        HeadlessBrowserTool::Logger.log.info "Checking if session file exists: #{SessionPersistence.session_exists?(session_id) if session_id}"
+        HeadlessBrowserTool::Logger.log&.info "Creating browser instance on first use..."
+        HeadlessBrowserTool::Logger.log&.info "Current session_id: #{session_id.inspect}"
+        HeadlessBrowserTool::Logger.log&.info "Checking if session file exists: #{SessionPersistence.session_exists?(session_id) if session_id}"
+
+        # Create new browser instance
         self.browser_instance = Browser.new(**browser_options, session_id: session_id)
 
-        # Restore session if session_id provided
-        restore_single_session if session_id
+        # If a session_id was provided, restoration is required - fail if it can't be done
+        if session_id
+          unless browser_instance&.session
+            raise "Browser session not ready for restoration. This typically happens on first initialization. Simply retry the operation - the browser session will be ready on the second attempt."
+          end
+
+          begin
+            restore_single_session
+          rescue => e
+            # Log the error but still fail with a clear message
+            HeadlessBrowserTool::Logger.log&.error "Session restoration error: #{e.message}"
+            raise "Session restoration failed. Please retry the operation - this typically resolves on the second attempt."
+          end
+        end
 
         browser_instance
       end
@@ -135,6 +149,11 @@ module HeadlessBrowserTool
       private
 
       def restore_single_session
+        # This should not happen now since we check before calling
+        unless browser_instance&.respond_to?(:session) && browser_instance.session
+          raise "Browser session not initialized"
+        end
+
         SessionPersistence.restore_session(session_id, browser_instance.session)
       end
 
@@ -143,7 +162,7 @@ module HeadlessBrowserTool
 
         SessionPersistence.save_session(session_id, browser_instance.session)
       rescue StandardError => e
-        HeadlessBrowserTool::Logger.log.info "Error saving session during shutdown: #{e.message}"
+        HeadlessBrowserTool::Logger.log&.info "Error saving session during shutdown: #{e.message}"
       end
     end
 

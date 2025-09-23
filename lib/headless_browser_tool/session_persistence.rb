@@ -56,6 +56,12 @@ module HeadlessBrowserTool
     end
 
     def restore_session(session_id, capybara_session)
+      # Add nil checks for session_id and capybara_session
+      unless session_id && capybara_session
+        HeadlessBrowserTool::Logger.log.info "WARNING: Cannot restore session - session_id or capybara_session is nil"
+        return false
+      end
+
       session_file = File.join(DirectorySetup::SESSIONS_DIR, "#{session_id}.json")
 
       HeadlessBrowserTool::Logger.log.info "=== Starting session restoration for: #{session_id} ==="
