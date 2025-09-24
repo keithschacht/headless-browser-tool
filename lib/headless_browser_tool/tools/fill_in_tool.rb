@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base_tool"
+require "capybara"
 
 module HeadlessBrowserTool
   module Tools
@@ -52,14 +53,37 @@ module HeadlessBrowserTool
           {}
         end
 
-        browser.fill_in(field, value)
+        # Attempt to fill in the field - this will raise an error if field doesn't exist
+        begin
+          browser.fill_in(field, value)
 
-        {
-          field: field,
-          value: value,
-          field_info: field_info,
-          status: "success"
-        }
+          {
+            field: field,
+            value: value,
+            field_info: field_info,
+            status: "success"
+          }
+        rescue Capybara::ElementNotFound => e
+          # Field not found - return error status
+          {
+            field: field,
+            value: value,
+            field_info: {},
+            status: "error",
+            error: "Field not found",
+            message: e.message
+          }
+        rescue StandardError => e
+          # Other errors - return error status
+          {
+            field: field,
+            value: value,
+            field_info: field_info,
+            status: "error",
+            error: e.class.name,
+            message: e.message
+          }
+        end
       end
     end
   end
