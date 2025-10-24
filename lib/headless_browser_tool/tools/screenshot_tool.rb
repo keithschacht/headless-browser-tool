@@ -43,8 +43,10 @@ module HeadlessBrowserTool
         # Get file info
         file_size = File.size(file_path)
 
+        return_path = compute_relative_path(file_path)
+
         {
-          file_path: file_path,
+          file_path: return_path,
           filename: filename,
           file_size: file_size,
           file_size_human: "#{(file_size / 1024.0).round(2)} KB",
@@ -57,6 +59,20 @@ module HeadlessBrowserTool
       end
 
       private
+
+      def compute_relative_path(full_path)
+        hbt_dir = HeadlessBrowserTool::DirectorySetup::HBT_DIR
+        normalized_hbt_dir = hbt_dir.sub(%r{/+$}, "")
+
+        if normalized_hbt_dir.end_with?(".hbt")
+          if full_path.include?(".hbt/")
+            hbt_index = full_path.index(".hbt/")
+            return full_path[hbt_index..-1]
+          end
+        end
+
+        full_path
+      end
 
       def inject_highlight_script(selectors, annotate)
         script = <<~JS
