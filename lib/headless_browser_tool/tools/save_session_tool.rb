@@ -55,14 +55,14 @@ module HeadlessBrowserTool
               cookies_count: state["cookies"]&.length || 0,
               local_storage_items: state["local_storage"]&.length || 0,
               session_storage_items: state["session_storage"]&.length || 0,
-              file_path: session_file
+              file_path: compute_relative_path(session_file)
             }
           else
             {
               status: "success",
               session_id: session_id,
               message: "Session saved but file verification failed",
-              file_path: session_file
+              file_path: compute_relative_path(session_file)
             }
           end
         rescue StandardError => e
@@ -73,6 +73,22 @@ module HeadlessBrowserTool
             session_id: session_id
           }
         end
+      end
+
+      private
+
+      def compute_relative_path(full_path)
+        hbt_dir = HeadlessBrowserTool::DirectorySetup::HBT_DIR
+        normalized_hbt_dir = hbt_dir.sub(%r{/+$}, "")
+
+        if normalized_hbt_dir.end_with?(".hbt")
+          if full_path.include?(".hbt/")
+            hbt_index = full_path.index(".hbt/")
+            return full_path[hbt_index..-1]
+          end
+        end
+
+        full_path
       end
     end
   end

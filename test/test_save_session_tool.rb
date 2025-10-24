@@ -335,4 +335,83 @@ class TestSaveSessionTool < TestBase
     assert_kind_of Hash, saved_session_data["session_storage"]
     assert_kind_of Hash, saved_session_data["window_size"]
   end
+
+  def test_save_session_path_with_relative_hbt_dir
+    original_hbt_dir = ENV["HBT_DIR"]
+    original_sessions_dir = ENV["HBT_SESSIONS_DIR"]
+
+    begin
+      ENV["HBT_DIR"] = "./sandbox/.hbt"
+      ENV["HBT_SESSIONS_DIR"] = nil
+
+      load File.expand_path("../lib/headless_browser_tool/directory_setup.rb", __dir__)
+      HeadlessBrowserTool::DirectorySetup.setup_directories
+
+      # Visit a page
+      make_mcp_request("tools/call", {
+                         name: "visit",
+                         arguments: { url: "https://example.com" }
+                       })
+
+      # Save the session
+      result = make_mcp_request("tools/call", {
+                                  name: "save_session",
+                                  arguments: {}
+                                })
+
+      parsed_result = parse_tool_result(result)
+
+      assert_equal "success", parsed_result["status"]
+      assert parsed_result["file_path"].start_with?(".hbt/sessions/"),
+             "Expected file_path to start with '.hbt/sessions/' but got: #{parsed_result["file_path"]}"
+      assert parsed_result["file_path"].match?(/\.hbt\/sessions\/.*\.json$/),
+             "Expected file_path to be a JSON file in .hbt/sessions/ but got: #{parsed_result["file_path"]}"
+    ensure
+      ENV["HBT_DIR"] = original_hbt_dir
+      ENV["HBT_SESSIONS_DIR"] = original_sessions_dir
+      load File.expand_path("../lib/headless_browser_tool/directory_setup.rb", __dir__)
+    end
+  end
+
+  def test_save_session_path_with_absolute_hbt_dir_and_trailing_slash
+    original_hbt_dir = ENV["HBT_DIR"]
+    original_sessions_dir = ENV["HBT_SESSIONS_DIR"]
+
+    begin
+      test_dir = File.join(Dir.tmpdir, "hbt_test_#{Process.pid}_#{Time.now.to_i}")
+      hbt_dir = File.join(test_dir, "sandbox", ".hbt")
+      FileUtils.mkdir_p(File.join(hbt_dir, "sessions"))
+
+      ENV["HBT_DIR"] = "#{hbt_dir}/"
+      ENV["HBT_SESSIONS_DIR"] = nil
+
+      load File.expand_path("../lib/headless_browser_tool/directory_setup.rb", __dir__)
+      HeadlessBrowserTool::DirectorySetup.setup_directories
+
+      # Visit a page
+      make_mcp_request("tools/call", {
+                         name: "visit",
+                         arguments: { url: "https://example.com" }
+                       })
+
+      # Save the session
+      result = make_mcp_request("tools/call", {
+                                  name: "save_session",
+                                  arguments: {}
+                                })
+
+      parsed_result = parse_tool_result(result)
+
+      assert_equal "success", parsed_result["status"]
+      assert parsed_result["file_path"].start_with?(".hbt/sessions/"),
+             "Expected file_path to start with '.hbt/sessions/' but got: #{parsed_result["file_path"]}"
+      assert parsed_result["file_path"].match?(/\.hbt\/sessions\/.*\.json$/),
+             "Expected file_path to be a JSON file in .hbt/sessions/ but got: #{parsed_result["file_path"]}"
+    ensure
+      FileUtils.rm_rf(test_dir) if test_dir && File.exist?(test_dir)
+      ENV["HBT_DIR"] = original_hbt_dir
+      ENV["HBT_SESSIONS_DIR"] = original_sessions_dir
+      load File.expand_path("../lib/headless_browser_tool/directory_setup.rb", __dir__)
+    end
+  end
 end
