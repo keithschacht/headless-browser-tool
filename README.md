@@ -14,12 +14,18 @@ brew install ruby
 ```
 
 ```bash
-gem install https://github.com/krschacht/headless-browser-tool
+gem install https://github.com/keithschacht/headless-browser-tool
 claude mcp add headless-browser hbt stdio --
 claude
 ```
 
-If you want to watch the browser work, add the `--no-headless` flag like `hbt stdio -- --no-headless`. If any websites are blocking you because of automation, also add the `--be-human` flag. If you want to persist the browser between Claude sessions, run it in HTTP mode instead:
+Once inside claude, type `/mcp` and you can check the status of this MCP server and browser it's tools. You can simply tell Claude to use a specific tool if you want to see how it works.
+
+If you want to watch the browser work, add the `--no-headless` flag like `hbt stdio -- --no-headless`. This is helpful when first using HBT so you understand what it's doing well and what it's struggling with. I'm pretty sure you need to first do `claude mcp remove headless-browser` and then you can re-add it with the extra flags: `claude mcp add headless-browser hbt stdio -- --no-headless`.
+
+If any websites are blocking you because of automation, also add the `--be-human` flag. This is a little experimental so I'd wait to add this flag until you run into problems with a website.
+
+If you want to persist the browser between Claude sessions, run it in HTTP mode instead:
 
 ```bash
 gem install https://github.com/krschacht/headless-browser-tool
@@ -30,7 +36,7 @@ claude mcp add --transport http headless-browser http://localhost:4567/mcp
 claude
 ```
 
-## Features
+## OLD README IS BELOW
 
 - **Headless Chrome browser automation** - Full browser control via Selenium WebDriver
 - **MCP server with 40+ browser control tools** - Comprehensive API for browser interactions
@@ -43,25 +49,6 @@ claude
 - **Structured responses** - All tools return rich, structured data instead of simple strings
 - **Smart element selectors** - Tools returning multiple elements include selectors for each
 
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'headless_browser_tool'
-```
-
-And then execute:
-
-```bash
-bundle install
-```
-
-Or install it yourself as:
-
-```bash
-gem install headless_browser_tool
-```
 
 ## Prerequisites
 
